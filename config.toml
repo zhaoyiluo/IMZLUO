@@ -462,7 +462,7 @@ enableEmoji = true
         darkTheme = "github-dark"
       # Twikoo comment config (https://twikoo.js.org/)
       [params.page.comment.twikoo]
-        enable = false
+        enable = true
         envId = "https://doit-docs-comment-twikoo.vercel.app/"
         region = ""
         path = ""
