@@ -379,7 +379,7 @@ enableEmoji = true
       Mix = false
     # Comment config
     [params.page.comment]
-      enable = false
+      enable = true
       # Disqus comment config (https://disqus.com/)
       [params.page.comment.disqus]
         enable = false
@@ -394,7 +394,7 @@ enableEmoji = true
         clientSecret = ""
       # Valine comment config (https://github.com/xCss/Valine)
       [params.page.comment.valine]
-        enable = false
+        enable = true
         appId = "aM7gLUeWp8it1Efrcp3rm8TB-MdYXbMMI"
         appKey = "Xn1xlYj3Fm5gvsYG3WyQpaix"
         placeholder = ""
