@@ -423,7 +423,7 @@ enableEmoji = true
         meta = ["nick", "mail", "link"]
         pageSize = 10
         lang = "en"
-        visitor = false
+        visitor = true
         highlight = true
         avatarCDN = ""
         avatarForce = false
@@ -462,7 +462,7 @@ enableEmoji = true
         darkTheme = "github-dark"
       # Twikoo comment config (https://twikoo.js.org/)
       [params.page.comment.twikoo]
-        enable = true
+        enable = false
         envId = "https://doit-docs-comment-twikoo.vercel.app/"
         region = ""
         path = ""
