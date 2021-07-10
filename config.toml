@@ -394,7 +394,7 @@ enableEmoji = true
         clientSecret = ""
       # Valine comment config (https://github.com/xCss/Valine)
       [params.page.comment.valine]
-        enable = false
+        enable = true
         appId = "aM7gLUeWp8it1Efrcp3rm8TB-MdYXbMMI"
         appKey = "Xn1xlYj3Fm5gvsYG3WyQpaix"
         placeholder = ""
@@ -462,7 +462,7 @@ enableEmoji = true
         darkTheme = "github-dark"
       # Twikoo comment config (https://twikoo.js.org/)
       [params.page.comment.twikoo]
-        enable = true
+        enable = false
         envId = "https://doit-docs-comment-twikoo.vercel.app/"
         region = ""
         path = ""
