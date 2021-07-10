@@ -394,7 +394,7 @@ enableEmoji = true
         clientSecret = ""
       # Valine comment config (https://github.com/xCss/Valine)
       [params.page.comment.valine]
-        enable = true
+        enable = false
         appId = "aM7gLUeWp8it1Efrcp3rm8TB-MdYXbMMI"
         appKey = "Xn1xlYj3Fm5gvsYG3WyQpaix"
         placeholder = ""
@@ -415,7 +415,7 @@ enableEmoji = true
         emoji = ""
       # Waline comment config (https://waline.js.org)
       [params.page.comment.waline]
-        enable = false
+        enable = true
         serverURL = "https://doit-docs-comment.vercel.app/"
         placeholder = "Just Go Go."
         wordLimit = 0
