@@ -415,7 +415,7 @@ enableEmoji = true
         emoji = ""
       # Waline comment config (https://waline.js.org)
       [params.page.comment.waline]
-        enable = true
+        enable = false
         serverURL = "https://doit-docs-comment.vercel.app/"
         placeholder = "Just Go Go."
         wordLimit = 0
