@@ -1,1 +1,5 @@
+# ignore local generated website
 public/
+
+# ignore local generated resource
+resources/
