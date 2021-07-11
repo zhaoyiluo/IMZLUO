@@ -31,13 +31,13 @@ The DeepSpeed team introduces two compressed-training strategies to support fast
 
 #### Compressed training
 
-The training exploits coarse-grained sparsity in Transformer layers via [Progressive Layer Dropping (PLD)](https://www.microsoft.com/en-us/research/publication/accelerating-training-of-transformer-based-language-models-with-progressive-layer-dropping/) to obtain reduced training cost. It's an algorithm that dynamically switches off Transformer layers during each iteration based on a progressive schedule that accounts for model sensitivity along both the temporal and depth dimensions.
+The training exploits coarse-grained sparsity in Transformer layers via [Progressive Layer Dropping (PLD)](https://www.microsoft.com/en-us/research/publication/accelerating-training-of-transformer-based-language-models-with-progressive-layer-dropping/) to obtain reduced training cost. It's an algorithm that dynamically switches off Transformer layers during each iteration based on a progressive schedule that accounts for model sensitivity along both the temporal and depth dimensions (as shown in Figure 1).
 
-![diagram](https://www.microsoft.com/en-us/research/uploads/prod/2021/05/DeepSpeed5_fig8_final-1024x392.jpg)
+{{< image src="compressed-robust-training-via-progressive-layer-dropping.webp" caption="Figure 1: Compressed robust training via Progressive Layer Dropping." >}}
 
-By adopting this strategy, DeepSpeed can reduce training time per sample by an average of 24 percent. On the other hand, when combined with the Pre-LN Transformer architecture, it facilitates training with more aggressive learning rates, achieving the same pretraining validity with 53 percent fewer training samples. In total, it yields a 2.8x faster convergence speed without hurting accuracy.
+By adopting this strategy, DeepSpeed can reduce training time per sample by an average of 24 percent. On the other hand, when combined with the Pre-LN Transformer architecture, it facilitates training with more aggressive learning rates, achieving the same pretraining validity with 53 percent fewer training samples. In total, it yields a 2.8x faster convergence speed without hurting accuracy (as shown in Figure 2).
 
-![chart, histogram](https://www.microsoft.com/en-us/research/uploads/prod/2021/05/DeepSpeed5_fig9_final.jpg)
+{{< image src="progressive-layer-dropping-is-2-8-x-faster-than-dense-training-to-achieve-the-same-validity-loss.webp" caption="Figure 2: Progressive Layer Dropping is 2.8x faster than dense training to achieve the same validity loss." >}}
 
 #### 1-bit LAMB
 
@@ -45,9 +45,9 @@ Communication is a major bottleneck for training large models with hundreds or e
 
 Thus, 1-bit LAMB, a novel communication-efficient algorithm is proposed by the team, that supports compressed communication in the context of large-batch optimization with adaptive layer-wise learning rates. The team also introduces new system implementations for compressed communication (for both 1-bit LAMB and 1-bit Adam) using the NVIDIA Collective Communications Library (NCCL) backend of PyTorch Distributed.
 
-For BERT-Large pretraining tasks with batch sizes from 8K to 64K, the evaluations demonstrate that 1-bit LAMB with NCCL backend achieves 4.6x communication volume reduction, up to 2.8x training throughput speedup while retaining the same downstream task accuracy as LAMB under the same number of training samples.
+For BERT-Large pretraining tasks with batch sizes from 8K to 64K, the evaluations demonstrate that 1-bit LAMB with NCCL backend achieves 4.6x communication volume reduction, up to 2.8x training throughput speedup while retaining the same downstream task accuracy as LAMB under the same number of training samples (as shown in Figure 3).
 
-![img](https://www.microsoft.com/en-us/research/uploads/prod/2021/05/DeepSpeed5_fig10_final-1024x604.jpg)
+{{< image src="end-to-end-throughput-speedup-of-1-bit-lamb-compared-to-lamb-for-pretraining-task-using-bert-large-with-different-batch-sizes-and-numbers-of-gpus.webp" caption="Figure 3: End-to-end throughput speedup of 1-bit LAMB (compared to LAMB) for pretraining task using BERT-Large with different batch sizes and numbers of GPUs." >}}
 
 #### DeepSpeed Profiler performance tool
 
@@ -95,9 +95,9 @@ To incorporate the aforementioned optimizations, two sets of Transformer kernels
 
 - Generic Transformer replaces individual PyTorch operators within Transformer such as LayerNorm, Softmax, and bias-add with highly optimized DeepSpeed versions created using deep fusion.
 
-- Specialized Transformer takes deep fusion one step further by creating fused schedules that not only fuse micro-operators within a PyTorch macro-operator (such as Softmax), but also fuse multiple macro-operators (such as Softmax and LayerNorm together with transpose op, and even GeMM).
+- Specialized Transformer takes deep fusion one step further by creating fused schedules that not only fuse micro-operators within a PyTorch macro-operator (such as Softmax), but also fuse multiple macro-operators (such as Softmax and LayerNorm together with transpose op, and even GeMM) (as shown in Figure 4).
 
-![diagram](https://www.microsoft.com/en-us/research/uploads/prod/2021/05/Fig1_DeepSpeed5_Blog.jpg)
+{{< image src="deep-fusion-in-specialized-transformer-kernel.webp" caption="Figure 4: Deep Fusion in specialized Transformer kernel." >}}
 
 - Effective quantize-aware training
 
@@ -115,9 +115,7 @@ These kernels are the extensions of Generic and Specialized Transformer kernels 
 
 ## Usage
 
-An easy-to-use API is provided for users to use DeepSpeed. More information refer to [PythonRepo](https://pythonrepo.com/repo/microsoft-DeepSpeed-python-machine-learning).
-
-![img](https://www.microsoft.com/en-us/research/uploads/prod/2021/05/DeepSpeed_fig2_5blog-1024x543.jpg)
+An easy-to-use API is provided for users to use DeepSpeed. More information refer to [PythonRepo](https://pythonrepo.com/repo/microsoft-DeepSpeed-python-machine-learning) (as shown in Figure 5).
 
 ```python
 # DeepSpeed MoQ
@@ -145,21 +143,23 @@ model = deepspeed.init_inference(model,
                                 )
 ```
 
+{{< image src="the-deepspeed-inference-pipeline-and-the-inference-api-pseudocode-for-the-different-stages-of-the-pipeline.webp" caption="Figure 5: The DeepSpeed Inference pipeline and the inference API pseudocode for the different stages of the pipeline." >}
+
 ## Result
 
 The DeepSpeed team has conducted the following tests from different angles to verify its performance in latency reduction, cost reduction, throughput boosting, etc.
 
-First, the team tested DeepSpeed on open-source models with publicly available checkpoints, like BERT, GPT-2, and GPT-Neo. The picture below presents the execution time of DeepSpeed Inference on a single NVIDIA V100 Tensor Core GPU with generic and specialized Transformer kernels respectively. The results show that the generic kernels provide 1.6–3x speedups to these models over the PyTorch baseline and the library can further reduce latency through the specialized kernels, achieving 1.9–4.4x speedups.
+First, the team tested DeepSpeed on open-source models with publicly available checkpoints, like BERT, GPT-2, and GPT-Neo. The picture below presents the execution time of DeepSpeed Inference on a single NVIDIA V100 Tensor Core GPU with generic and specialized Transformer kernels respectively. The results show that the generic kernels provide 1.6–3x speedups to these models over the PyTorch baseline and the library can further reduce latency through the specialized kernels, achieving 1.9–4.4x speedups (as shown in Figure 6).
 
-![img](https://www.microsoft.com/en-us/research/uploads/prod/2021/05/DeepSpeed5_fig3_blog_final.jpg)
+{{< image src="inference-latency-for-the-open-source-models-with-publicly-available-checkpoints-selected-from-hugging-face-model-zoo.webp" caption="Figure 6: Inference latency for the open-source models with publicly available checkpoints selected from Hugging Face Model Zoo." >}}
 
-Second, the team tested DeepSpeed through automated tensor-slicing model parallelism across multiple GPUs. The picture below presents the execution time of GPT-Neo (2.7B) for baseline and DeepSpeed Inference (DS-Inference) on one GPU and two GPUs with two-way model parallelism. On one side, DeepSpeed Inference speeds up the performance by 1.6x and 1.9x on a single GPU by employing the generic and specialized Transformer kernels, respectively. On the other side, it can further decrease the latency by using automated tensor slicing to partition the model across two GPUs. Altogether, the library achieves 2.3x speedup by combining the impact of the customized-inference kernels with the model-parallel inference execution.
+Second, the team tested DeepSpeed through automated tensor-slicing model parallelism across multiple GPUs. The picture below presents the execution time of GPT-Neo (2.7B) for baseline and DeepSpeed Inference (DS-Inference) on one GPU and two GPUs with two-way model parallelism. On one side, DeepSpeed Inference speeds up the performance by 1.6x and 1.9x on a single GPU by employing the generic and specialized Transformer kernels, respectively. On the other side, it can further decrease the latency by using automated tensor slicing to partition the model across two GPUs. Altogether, the library achieves 2.3x speedup by combining the impact of the customized-inference kernels with the model-parallel inference execution (as shown in Figure 7).
 
-![chart, bar chart](https://www.microsoft.com/en-us/research/uploads/prod/2021/05/DeepSpeed5_fig4_blog_final-1024x588.jpg)
+{{< image src="gpt-neo-inference-latency-running-on-different-number-of-gpus-with-different-model-parallelism-degrees.webp" caption="Figure 7: GPT-Neo inference latency running on different number of GPUs with different model-parallelism degrees." >}}
 
-Third, the team tested DeepSpeed by varying the number of Transformer layers and hidden sizes to match the existing network architecture: GPT-2 (1.5B), Turing-NLG (17B), and GPT-3 (175B). The picture below presents the inference throughput per GPU for the three models. It improves per-GPU throughput by 2–3.7x when using the same precision of FP16 as the baseline. It can get an improved throughput after enabling quantization.
+Third, the team tested DeepSpeed by varying the number of Transformer layers and hidden sizes to match the existing network architecture: GPT-2 (1.5B), Turing-NLG (17B), and GPT-3 (175B). The picture below presents the inference throughput per GPU for the three models. It improves per-GPU throughput by 2–3.7x when using the same precision of FP16 as the baseline. It can get an improved throughput after enabling quantization (as shown in Figure 8).
 
-![chart, bar chart](https://www.microsoft.com/en-us/research/uploads/prod/2021/05/DeepSpeed5_fig5_final-1024x541.jpg)
+{{< image src="inference-throughput-for-different model-sizes.webp" caption="Figure 8: Inference throughput for different model sizes." >}}
 
 These three tests show the outstanding performance DeepSpeed brings. The team has also conducted other tests to further explore how excellent DeepSpeed is. More information refer to [the original article](https://www.microsoft.com/en-us/research/blog/deepspeed-accelerating-large-scale-model-inference-and-training-via-system-optimizations-and-compression/).
 
