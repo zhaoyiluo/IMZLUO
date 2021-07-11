@@ -379,7 +379,7 @@ enableEmoji = true
       Mix = false
     # Comment config
     [params.page.comment]
-      enable = true
+      enable = false
       # Disqus comment config (https://disqus.com/)
       [params.page.comment.disqus]
         enable = false
@@ -462,7 +462,7 @@ enableEmoji = true
         darkTheme = "github-dark"
       # Twikoo comment config (https://twikoo.js.org/)
       [params.page.comment.twikoo]
-        enable = true
+        enable = false
         envId = "https://doit-docs-comment-twikoo.vercel.app/"
         region = ""
         path = ""
