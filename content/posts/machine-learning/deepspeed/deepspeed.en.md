@@ -143,7 +143,7 @@ model = deepspeed.init_inference(model,
                                 )
 ```
 
-{{< image src="the-deepspeed-inference-pipeline-and-the-inference-api-pseudocode-for-the-different-stages-of-the-pipeline.webp" caption="Figure 5: The DeepSpeed Inference pipeline and the inference API pseudocode for the different stages of the pipeline." >}
+{{< image src="the-deepspeed-inference-pipeline-and-the-inference-api-pseudocode-for-the-different-stages-of-the-pipeline.webp" caption="Figure 5: The DeepSpeed Inference pipeline and the inference API pseudocode for the different stages of the pipeline." >}}
 
 ## Result
 
