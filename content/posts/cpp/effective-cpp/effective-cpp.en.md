@@ -130,13 +130,30 @@ featuredImagePreview: ""
 
 **Item 13: Use objects to manage resources.**
 
+- To prevent resource leaks, use Resource Acquisition Is Initialization (RAII) objects that acquire resources in their constructors and release them in their destructors.
+- Two commonly useful RAII classes are `tr1::shared_ptr` and `auto_ptr`. `tr1::shared_ptr` is usually the better choice, because its behavior when copied is intuitive. Copying an `auto_ptr` sets it to null.
+
 **Item 14: Think carefully about copying behavior in resource-managing classes.**
+
+- Copying an RAII object entails copying the resource it manages, so the copying behavior of the resources determines the copying behavior of the RAII object.
+  - Solution 1: prohibit copying.
+  - Solution 2: reference-count the underlying resource.
+  - Solution 3: copy the underlying resource.
+  - Solution 4: transfer ownership of the underlying resource.
 
 **Item 15: Provide access to raw resources in resource-managing classes.**
 
+- APIs often require access to raw resources, so each RAII class should offer a way to get at the resource it manages.
+- Access may be via explicit conversion or implicit conversion. In general, explicit conversion is safer, but implicit conversion is more convenient for clients.
+
 **Item 16: Use the same form in corresponding uses of new and delete.**
 
-**Item 17: Store newed objects in smart pointers in standalone statements.**
+- If you use [] in a `new` expression, you must use [] in the corresponding `delete` expression. If you don't use [] in a `new` expression, you mustn't use [] in the corresponding `delete` expression.
+
+**Item 17: Store `new`ed objects in smart pointers in standalone statements.**
+
+- Store `new`ed objects in smart pointers in standalone statements. Failure to do this can lead to subtle resource leaks when exceptions are throw.
+  - An exception can intervene between the time a resource is created and the time that resource is turned over to a resource-managing object.
 
 ## Chapter 4: Designs and Declarations
 
