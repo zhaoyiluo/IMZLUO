@@ -159,19 +159,97 @@ featuredImagePreview: ""
 
 **Item 18: Make interfaces easy to use correctly and hard to use incorrectly.**
 
+- Good interfaces are easy to use correctly and hard to use incorrectly. You should strive for these characteristics in all your interfaces.
+- Ways to facilitate correct use include consistency in interfaces and behavioral compatibility with built-in types.
+- Ways to prevent errors include creating new types, restricting operations on types, constraining object values, and eliminating client resource management responsibilities.
+- `tr1::shared_ptr` supports custom deleters. This prevents the cross-DLL problem, can be used to automatically unlock mutexes, etc.
+
 **Item 19: Treat class design as type design.**
 
-**Item 20: Prefer pass-by-reference-to-const to pass-by-value.**
+- Class design is type design. Before defining a new type, be sure to consider all the issues discussed in this item.
+  - How should objects of your new type be created and destroyed?
+  - How should object initialization differ from object assignment?
+  - What does it mean for objects of your new type to be passed by value?
+  - What are the restrictions on legal values for your new type?
+  - Does your new type fit into an inheritance graph?
+  - What kind of type conversions are allowed for your new type?
+  - What operators and functions make sense for the new type?
+  - What standard functions should be disallowed?
+  - Who should have access to the members of your new type?
+  - What is the "undeclared interface" of your new type?
+  - How general is your new type?
+  - Is a new type really what you need?
+
+**Item 20: Prefer pass-by-reference-to-`const` to pass-by-value.**
+
+- Prefer pass-by-reference-to-`const` over pass-by-value. It's typically more efficient and it avoids the slicing problem.
+- The rule doesn't apply to built-in types and STL iterator and function object types. For them, pass-by-value is usually appropriate.
 
 **Item 21: Don't try to return a reference when you must return an object.**
 
-**Item 22: Declare data members private.**
+- Never return  a pointer or reference to a local stack object, a reference to a heap-allocated object, or a pointer or reference to a local static object if there is a chance that more than one such object will be needed.
+
+**Item 22: Declare data members `private`.**
+
+- Declare data members `private`. It gives clients syntactically uniform access to data, affords fine-grained access control, allows invariants to be enforced, and offers class authors implementation flexibility.
+- `protected` is no more encapsulated than `public`.
 
 **Item 23: Prefer non-member non-friend functions to member functions.**
 
+- Prefer non-member non-friend functions to member functions. Doing so increases encapsulation, packaging flexibility, and functional extensibility.
+
 **Item 24: Declare non-member functions when type conversions should apply to all parameters.**
 
-**Item 25: Consider support for a non-throwing swap.**
+- If you need type conversions on all parameters to a function (including the one that would otherwise be pointed to by the `this` pointer), the function must be a non-member.
+
+**Item 25: Consider support for a non-throwing `swap`.**
+
+- Provide a `swap` member function when `std::swap` would be inefficient for your type. Make sure your `swap` doesn't throw exceptions.
+- If you offer a member `swap`, also offer a non-member `swap` that calls the member. For classes (not templates), specialize `std::swap`, too.
+  ```c++
+  class WidgetImpl;
+  
+  class Widget {
+   public:
+    // ...
+    void swap(Widget& other) {
+      using std::swap;
+      swap(plmpl, other.plmpl);
+    }
+    // ...
+  
+   private:
+    WidgetImpl* plmpl;
+  };
+  
+  namespace std {
+  template <>
+  void swap<Widget>(Widget& a, Widget& b) {
+    a.swap(b);
+  }
+  }  // namespace std
+  ```
+- When calling `swap`, employ a `using` declaration for `std::swap`, then call `swap` without namespace qualification.
+  ```c++
+  template <typename T>
+  void doSomething(T& obj1, T& obj2) {
+    using std::swap;
+    // ...
+    swap(obj1, obj2);
+    // ...
+  }
+  ```
+- It's fine to totally specialize `std` templates for user-defined types, but never try to add something completely new to `std`.
+  - Though C++ allows partial specialization of class templates, it doesn't allow it for function templates.
+    ```c++
+    // invalid code
+    namespace std {
+    template <typename T>
+    void swap(Widget<T>& a, Widget<T>& b) {
+      a.swap(b);
+    }
+    }  // namespace std
+    ```
 
 ## Chapter 5: Implementations
 
