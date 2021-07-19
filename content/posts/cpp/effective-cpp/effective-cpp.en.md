@@ -1,5 +1,5 @@
 ---
-title: "<Book Notes> Effective C++, Third Edition"
+title: "[Notes] Effective C++, Third Edition"
 subtitle: "55 Specific Ways to Improve Your Programs and Designs"
 date: 2021-04-19T00:03:54+08:00
 lastmod: 2021-04-19T00:03:54+08:00
