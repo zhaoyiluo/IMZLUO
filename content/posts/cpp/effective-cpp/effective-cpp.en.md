@@ -255,11 +255,82 @@ featuredImagePreview: ""
 
 **Item 26: Postpone variable definitions as long as possible.**
 
+- Postpone variable definitions as long as possible. It increases program clarity and improves efficiency.
+- Unless you know the following two points, you should default to defining the variable used only inside the loop.
+  ```c++
+  for (int i = 0; i < n; ++i) {
+    Widget w(some value dependent on i);
+    // ...
+  }
+  ```
+- Assignment is less expensive than a constructor-destructor pair.
+- Dealing with a performance-sensitive part of your code.
+
 **Item 27: Minimize casting.**
+
+- Avoid casts whenever practical, especially dynamic_casts in performance-sensitive code. If a design requires casting, try to develop a cast-free alternative.
+  - Use containers that store pointers to derived class objects directly, thus eliminating the need to manipulate such objects through base class interfaces.
+    ```c++
+    typedef std::vector<std::tr1::shared_ptr<SpecialWindow>> VPSW;
+    VPSW winPtrs;
+    // ...
+    for (VPSW::iterator iter = winPtrs.begin(); iter != winPtrs.end(); ++iter) {
+      (*iter)->blink();
+    }
+    ```
+  - Provide virtual functions in the base class that let you do what you need.
+    ```c++
+    class Window {
+     public:
+      virtual void blink() {}
+      // ...
+    };
+    
+    class SpecialWindow : public Window {
+     public:
+      virtual void blink() {}
+      // ...
+    };
+    ```
+- When casting is necessary, try to hide it inside a function. Clients can then call the function instead of putting casts in their own code.
+- Prefer C++-style casts to old-style casts. They are easier to see, and they are more specific about what they do.
+  ```c++
+  // C-style casts look like this:
+  (T)expression
+  // Function-style casts use this syntax:
+  T(expression)
+  
+  // C++-style casts look like this:
+  const_cast<T>(expression)
+  dynamic_cast<T>(expression)
+  reinterpret_cast<T>(expression)
+  static_cast<T>(expression)
+  ```
 
 **Item 28: Avoid returning "handles" to object internals.**
 
+- Avoid returning handles (references, pointers, or iterators) to object internals. Not returning handles increases encapsulation, helps `const` member functions act `const`, and minimizes the creation of dangling handles.
+  - Dangling handles are handles that refer to parts of objects that don't exist any longer.
+    ```c++
+    class Rectangle;
+    class GUIObject;
+    
+    const Rectangle boundingBox(const GUIObject& obj);
+    
+    GUIObject* pgo;
+    // at the end of the statement, boundingBox's return value - temp - will be
+    // destroyed, and that will indirectly lead to the destruction of temp's Points
+    const Point* pUpperLeft = &(boundingBox(*pgo).upperLeft());
+    ```
+
 **Item 29: Strive for exception-safe code.**
+
+- Exception-safe functions leak no resources and allow no data structures to become corrupted, even when exceptions are thrown.
+  - Functions offering the basic guarantee promise that if an exception is thrown, everything in the program remains in a valid state.
+  - Functions offering the strong guarantee promise that if an exception is thrown, the state of the program is unchanged.
+  - Functions offering the nothrow guarantee promise never to throw exceptions.
+- The strong guarantee can often be implemented via copy-and-`swap`, but the strong guarantee is not practical for all functions.
+- A function can usually offer a guarantee no stronger than the weakest guarantee of the functions it calls.
 
 **Item 30: Understand the ins and outs of inlining.**
 
