@@ -257,14 +257,14 @@ featuredImagePreview: ""
 
 - Postpone variable definitions as long as possible. It increases program clarity and improves efficiency.
 - Unless you know the following two points, you should default to defining the variable used only inside the loop.
+  - Assignment is less expensive than a constructor-destructor pair.
+  - Dealing with a performance-sensitive part of your code.
   ```c++
   for (int i = 0; i < n; ++i) {
     Widget w(some value dependent on i);
     // ...
   }
   ```
-- Assignment is less expensive than a constructor-destructor pair.
-- Dealing with a performance-sensitive part of your code.
 
 **Item 27: Minimize casting.**
 
