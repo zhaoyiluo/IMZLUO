@@ -334,7 +334,56 @@ featuredImagePreview: ""
 
 **Item 30: Understand the ins and outs of inlining.**
 
+- Limit most inlining to small, frequently called functions. This facilitates debugging and binary upgradability, minimizes potential code bloat, and maximizes the chances of greater program speed.
+- Don't declare function templates inline just because they appear in header files.
+
 **Item 31: Minimize compilation dependencies between files.**
+
+- The general idea behind minimizing compilation dependencies is to depend on declarations instead of definitions. Two approaches based on this idea are Handle classes and Interface classes.
+  - Classes like `Person` that employ the pimpl idiom are often called Handle classes. One way is to forward all their function calls to the corresponding implementation classes and have those classes do the real work.
+    ```c++
+    #include "Person.h"
+    #include "PersonImpl.h"
+    
+    Person::Person(const std::string& name, const Data& birthday, const Address& addr)
+        : pImpl(new PersonImpl(name, birthday, addr)) {}
+    
+    std::string Person::name() const { return pImpl->name(); }
+    ```
+  - Clients of an Interface classes must have a way to create new objects. They typically do it by calling a function that plays the role of the constructor for the derived classes that are actually instantiated. Such functions are typically called factory functions or virtual constructors.
+    ```c++
+    // Interface class:
+    class Person {
+     public:
+      static std::shared_ptr<Person> create(const std::string& name, const Date& birthday,
+                                            const Address& addr);
+      virtual ~Person();
+    
+      virtual std::string name() const = 0;
+      virtual std::string birthDate() const = 0;
+      virtual std::string address() const = 0;
+      // ...
+    };
+    
+    std::shared_ptr<Person> Person::create(const std::string& name, const Date& birthday,
+                                           const Address& addr) {
+      return std::shared_ptr<Person>(new RealPerson(name, birthday, addr));
+    }
+    
+    // Clients use them like this:
+    int main() {
+      std::string name;
+      Date dateOfBirth;
+      Address address;
+    
+      std::shared_ptr<Person> pp(Person::create(name, dateOfBirth, address));
+      // ...
+      std::cout << pp->name() << "was born on" << pp->birthDate() << " and now lives at"
+                << pp->address();
+      // ...
+    }
+    ```
+- Library header files should exist in full and declaration-only forms. This applies regardless of whether templates are involved.
 
 ## Chapter 6: Inheritance and Object-Oriented Design
 
