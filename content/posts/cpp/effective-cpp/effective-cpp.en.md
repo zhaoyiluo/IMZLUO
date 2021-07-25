@@ -15,7 +15,7 @@ featuredImage: ""
 featuredImagePreview: ""
 ---
 
-## Chapter 1: Accustoming Yourself to C++
+## Ch. 1: Accustoming Yourself to C++
 
 **Item 1: View C++ as a federation of languages.**
 
@@ -68,7 +68,7 @@ featuredImagePreview: ""
 - The reference-returning functions are excellent candidates for inlining, especially if they're called frequently.
   - They are problematic in multithreaded systems. Solved by manually invoking all them during the single-threaded startup portion of the program.
 
-## Chapter 2: Constructors, Destructors, and Assignment Operators
+## Ch. 2: Constructors, Destructors, and Assignment Operators
 
 **Item 5: Know what functions C++ silently writes and calls.**
 
@@ -126,7 +126,7 @@ featuredImagePreview: ""
 - Copying functions should be sure to copy all of an object's data members and all of its base class parts.
 - Don't try to implement one of the copying functions in terms of the other. Instead, put common functionality in a third function that both call.
 
-## Chapter 3: Resource Management
+## Ch. 3: Resource Management
 
 **Item 13: Use objects to manage resources.**
 
@@ -155,7 +155,7 @@ featuredImagePreview: ""
 - Store `new`ed objects in smart pointers in standalone statements. Failure to do this can lead to subtle resource leaks when exceptions are throw.
   - An exception can intervene between the time a resource is created and the time that resource is turned over to a resource-managing object.
 
-## Chapter 4: Designs and Declarations
+## Ch. 4: Designs and Declarations
 
 **Item 18: Make interfaces easy to use correctly and hard to use incorrectly.**
 
@@ -251,7 +251,7 @@ featuredImagePreview: ""
     }  // namespace std
     ```
 
-## Chapter 5: Implementations
+## Ch. 5: Implementations
 
 **Item 26: Postpone variable definitions as long as possible.**
 
@@ -335,7 +335,7 @@ featuredImagePreview: ""
 **Item 30: Understand the ins and outs of inlining.**
 
 - Limit most inlining to small, frequently called functions. This facilitates debugging and binary upgradability, minimizes potential code bloat, and maximizes the chances of greater program speed.
-- Don't declare function templates inline just because they appear in header files.
+- Don't declare function templates `inline` just because they appear in header files.
 
 **Item 31: Minimize compilation dependencies between files.**
 
@@ -385,27 +385,159 @@ featuredImagePreview: ""
     ```
 - Library header files should exist in full and declaration-only forms. This applies regardless of whether templates are involved.
 
-## Chapter 6: Inheritance and Object-Oriented Design
+## Ch. 6: Inheritance and Object-Oriented Design
 
 **Item 32: Make sure public inheritance models "is-a."**
 
+- Public inheritance means "is-a". Everything that applies to base classes must also apply to derived classes, because every derived class object is a base class object.
+
 **Item 33: Avoid hiding inherited names.**
+
+- Names in derived classes hide names in base classes. Under public inheritance, this is never desirable.
+- To make hidden names visible again, employ using declarations or forwarding functions.
+  ```c++
+  // with using declarations:
+  class Base {
+   private:
+    int x;
+  
+   public:
+    virtual void mf1() = 0;
+    virtual void mf1(int);
+    virtual void mf2();
+    void mf3();
+    void mf3(double);
+    // ...
+  };
+  
+  class Derived : public Base {
+   public:
+    using Base::mf1;
+    using Base::mf3;
+    virtual void mf1();
+    void mf3();
+    void mf4();
+    // ...
+  };
+  
+  // with forwarding functions:
+  class Base {
+   public:
+    virtual void mf1() = 0;
+    virtual void mf1(int);
+    // ...
+  };
+  
+  class Derived : private Base {
+   public:
+    virtual void mf1() { Base::mf1(); }
+    // ...
+  };
+  ```
+- Another use for `inline` forwarding functions is to work around ancient compilers that (incorrectly) don't support `using` declarations to import inherited names into the scope of a derived class.
 
 **Item 34: Differentiate between inheritance of interface and inheritance of implementation.**
 
+- Inheritance of interface is different from inheritance of implementation. Under public inheritance, derived classes always inherit base class interfaces.
+- Pure virtual functions specify inheritance of interface only.
+- Simple (impure) virtual functions specify inheritance of interface plus inheritance of a default implementation.
+- Non-virtual functions specify inheritance of interface plus inheritance of a mandatory implementation.
+
 **Item 35: Consider alternatives to virtual functions.**
+
+- Alternatives to virtual functions include the non-virtual interface idiom (NVI idiom) and various forms of the Strategy design pattern. The NVI idiom is itself an example of the Template Method design pattern.
+- A disadvantage of moving functionality from a member function to a function outside the class is that the non-member function lacks access to the class's non-public members.
+- `tr1::function` objects act like generalized function pointers. Such objects support all callable entities compatible with a given target signature.
 
 **Item 36: Never redefine an inherited non-virtual function.**
 
+- Never redefine an inherited non-virtual function.
+
 **Item 37: Never redefine a function's inherited default parameter value.**
+
+- Never redefine an inherited default parameter value, because default parameter values are statically bound, while virtual functions - the only functions you should be redefining - are dynamically bound.
 
 **Item 38: Model "has-a" or "is-implemented-in-terms-of" through composition.**
 
+- Composition has meanings completely different from that of public inheritance.
+- In the application domain, composition means has-a. In the implementation domain, it means is-implemented-in-terms-of.
+  ```c++
+  // "has-a"
+  class Address {};
+  class PhoneNumber {};
+  
+  class Person {
+   public:
+    // ...
+      
+   private:
+    std::string name;
+    Address address;
+    PhoneNumber voiceNumber;
+    PhoneNumber faxNumber;
+  };
+  
+  // "is-implemented-in-terms-of"
+  template <class T>
+  class Set {
+   public:
+    bool member(const T& item) const;
+    void insert(const T& item);
+    void remove(const T& item);
+    std::size_t size() const;
+  
+   private:
+    std::list<T> rep;
+  };
+  ```
+
 **Item 39: Use private inheritance judiciously.**
+
+- Private inheritance means is-implemented-in-terms of. It's usually inferior to composition, but it makes sense when a derived class needs access to protected base class members or needs to redefine inherited virtual functions.
+  ```c++
+  class Timer {
+   public:
+    explicit Timer(int tickFrequency);
+    virtual void onTick() const;
+    // ...
+  };
+  
+  class Widget : private Timer {
+   private:
+    virtual void onTick() const;
+    // ...
+  };
+  ```
+- Unlike composition, private inheritance can enable the empty base optimization, This can be important for library developers who strive to minimize object sizes.
 
 **Item 40: Use multiple inheritance judiciously.**
 
-## Chapter 7: Templates and Generic Programming
+- Multiple inheritance is more complex than single inheritance. It can lead to new ambiguity issues and to the need for virtual inheritance.
+  ```c++
+  class BorrowableItem {
+   public:
+    void checkOut();
+    // ...
+  };
+  
+  class ElectronicGadget {
+   private:
+    bool checkOut();
+    // ...
+  };
+  
+  class MP3Player : public BorrowableItem, public ElectronicGadget {};
+  
+  MP3Player mp;
+  mp.checkOut();                  // ambiguous
+  mp.BorrowableItem::checkOut();  // ah, that checkOut...
+  ```
+- Virtual inheritance imposes costs in size, speed, and complexity of initialization and assignment. It's most practical when virtual base classes have no data.
+  - C++ performs the replication by default when it comes to "deadly MI diamond".
+  - The responsibility for initializing a virtual base is borne by the most derived class in the hierarchy.
+- Multiple inheritance does have legitimate uses. One scenario involves combining public inheritance from an Interface class with private inheritance from a class that helps with implementation.
+
+## Ch. 7: Templates and Generic Programming
 
 **Item 41: Understand implicit interfaces and compile-time polymorphism.**
 
@@ -423,7 +555,7 @@ featuredImagePreview: ""
 
 **Item 48: Be aware of template metaprogramming.**
 
-## Chapter 8: Customizing new and delete
+## Ch. 8: Customizing new and delete
 
 **Item 49: Understand the behavior of the new-handler.**
 
@@ -433,7 +565,7 @@ featuredImagePreview: ""
 
 **Item 52: Write placement delete if you write placement new.**
 
-## Chapter 9: Miscellany
+## Ch. 9: Miscellany
 
 **Item 53: Pay attention to compiler warnings.**
 
