@@ -541,11 +541,65 @@ featuredImagePreview: ""
 
 **Item 41: Understand implicit interfaces and compile-time polymorphism.**
 
-**Item 42: Understand the two meanings of typename.**
+- Both classes and templates support interfaces and polymorphism.
+- For classes, interfaces are explicit and centered on function signatures. Polymorphism occurs at runtime through virtual functions.
+- For template parameters, interfaces are implicit and based on valid expressions. Polymorphism occurs during compilation through template instantiation and function overloading resolution.
+  ```c++
+  class Class1 {
+   public:
+    void interfaceFunc();
+    void otherFunc1();
+  };
+  
+  class Class2 {
+   public:
+    void interfaceFunc();
+    void otherFunc2();
+  };
+  
+  // implicit interfaces:
+  template <typename T>
+  class UseClass {
+   public:
+    void run(T& obj) { obj.interfaceFunc(); }
+  };
+  ```
+
+**Item 42: Understand the two meanings of `typename`.**
+
+- When declaring template parameters, `class` and `typename` are interchangeable.
+- If the parser encounters a nested dependent name in a template, it assumes that the name is not a type unless you tell it otherwise.
+  - Names in a template that are dependent on a template parameter are called dependent names.
+  ```c++
+  template <typename C>
+  void print2nd(const C& container) {
+    if (container.size() >= 2) {
+      typename C::const_iterator iter(container.begin());
+      // ...
+    }
+  }
+  ```
+- Use `typename` to identify nested dependent type names, except in base class lists or as a base class identifier in a member initialization list.
+  ```c++
+  template <typename T>
+  class Derived : public Base<T>::Nested {
+   public:
+    explicit Derived(int x) : Base<T>::Nested(x) {
+      typename Base<T>::Nested temp;
+      // ...
+    }
+  };
+  ```
 
 **Item 43: Know how to access names in templatized base classes.**
 
+- In derived class templates, refer to names in base class templates via a "`this->`" prefix, via `using` declarations, or via an explicit base class qualification.
+
 **Item 44: Factor parameter-independent code out of templates.**
+
+- Templates generate multiple classes and multiple functions, so any template code not dependent on a template parameter causes bloat.
+- Bloat due to non-type template parameters can often be eliminated by replacing template parameters with function parameters or class data members.
+- Bloat due to type parameters can be reduced by sharing implementations for instantiation types with identical binary representations.
 
 **Item 45: Use member function templates to accept "all compatible types."**
 
