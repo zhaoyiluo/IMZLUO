@@ -603,6 +603,37 @@ featuredImagePreview: ""
 
 **Item 45: Use member function templates to accept "all compatible types."**
 
+- Use member function templates to generate functions that accept all compatible types.
+  ```c++
+  template <typename T>
+  class SmartPtr {
+   public:
+    template <typename U>
+    SmartPtr(const SmartPtr<U>& other) : heldPtr(other.get()) {
+      // ...
+    }
+  
+    T* get() const {return heldPtr};
+  
+   private:
+    T* heldPtr;
+  };
+  ```
+- If you declare member templates for generalized copy construction or generalized assignment, you'll still need to declare the normal copy constructor and copy assignment operator, too.
+  ```c++
+  template <class T>
+  class shared_ptr {
+   public:
+    shared_ptr(shared_ptr const& r);
+    template <class Y>
+    shared_ptr(shared_ptr<Y> const& r);
+    shared_ptr& operator=(shared_ptr const& r);
+    template <class Y>
+    shared_ptr& operator=(shared_ptr<Y> const& r);
+    // ...
+  };
+  ```
+
 **Item 46: Define non-member functions inside templates when type conversions are desired.**
 
 **Item 47: Use traits classes for information about types.**
