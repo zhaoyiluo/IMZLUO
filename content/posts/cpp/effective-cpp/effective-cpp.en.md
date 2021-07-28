@@ -636,7 +636,30 @@ featuredImagePreview: ""
 
 **Item 46: Define non-member functions inside templates when type conversions are desired.**
 
+- Implicit type conversion functions are never considered during template argument deduction.
+- Class templates don't depend on template argument deduction (that process applies only to function templates).
+- When writing a class template that offers functions related to the template that support implicit type conversions on all parameters, define those functions as friends inside the class template.
+  ```c++
+  template <typename T>
+  class Rational {
+   public:
+    // ...
+    friend const Rational operator*(const Rational& lhs, const Rational& rhs);
+    // inside a class template, the name of the template can be used as shorthand for
+    // the template and its parameters
+    // friend const Rational<T> operator*(const Rational<T>& lhs, const Rational<T>& rhs);
+  };
+  
+  template <typename T>
+  const Rational<T> operator*(const Rational<T>& lhs, Rational<T>& rhs) {
+    // ...
+  }
+  ```
+
 **Item 47: Use traits classes for information about types.**
+
+- Traits classes make information about types available during compilation. They're implemented using templates and template specializations.
+- In conjunction with overloading, traits classes make it possible to perform compile-time `if...else` tests on types.
 
 **Item 48: Be aware of template metaprogramming.**
 
