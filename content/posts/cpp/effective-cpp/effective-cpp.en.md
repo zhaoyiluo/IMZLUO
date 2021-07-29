@@ -663,6 +663,10 @@ featuredImagePreview: ""
 
 **Item 48: Be aware of template metaprogramming.**
 
+- Template meta programming (TMP) can shift work from runtime to compile-time, thus enabling earlier error detection and higher runtime performance.
+  - Compilers are obliged to make sure that all source code is valid, even if it's not executed.
+- TMP can be used to generate custom code based on combinations of policy choices, and ti can also be used to avoid generating code inappropriate for particular types.
+
 ## Ch. 8: Customizing new and delete
 
 **Item 49: Understand the behavior of the new-handler.**
