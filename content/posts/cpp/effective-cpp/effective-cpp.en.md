@@ -671,11 +671,141 @@ featuredImagePreview: ""
 
 **Item 49: Understand the behavior of the new-handler.**
 
-**Item 50: Understand when it makes sense to replace new and delete.**
+- `set_new_handler` allows you to specify a function to be called when memory allocation requests cannot be satisfied.
+  ```c++
+  class Widget {
+   public:
+    static std::new_handler set_new_handler(std::new_handler p) throw();
+    static void* operator new(std::size_t size) throw(std::bad_alloc);
+  
+   private:
+    static std::new_handler currentHandler;
+  };
+  
+  std::new_handler Widget::currentHandler = 0;
+  
+  std::new_handler Widget::set_new_handler(std::new_handler p) throw() {
+    std::new_handler oldHandler = currentHandler;
+    currentHandler = p;
+    return oldHandler;
+  }
+  ```
+- To ensure that the original new-handler is always reinstated, class treats the global new-handler as a resource and uses resource-managing objects to prevent resource leaks.
+  ```c++
+  // "mixin-style" base class for class-specific set_new_handler support
+  template <typename T>
+  class NewHandlerSupport {
+   public:
+    static std::new_handler set_new_handler(std::new_handler p) thorw();
+    static void* operator new(std::size_t size) throw(std::alloc);
+    // ...
+  
+   private:
+    static std::new_handler currentHandler;
+  };
+  
+  class Widget : public NewHandlerSupport<Widget> {
+    // ...
+  };
+  ```
+- Nothrow `new` is of limited utility, because it applies only to memory allocation; associated constructor calls may still throw exceptions.
 
-**Item 51: Adhere to convention when writing new and delete.**
+**Item 50: Understand when it makes sense to replace `new` and `delete`.**
 
-**Item 52: Write placement delete if you write placement new.**
+- There are many valid reasons for writing custom versions of `new` and `delete`.
+  - To detect usage errors.
+  - To collect statistics about the use of dynamically allocated memory.
+  - To increase the speed of allocation and deallocation.
+  - To reduce the space overhead of default memory management.
+  - To compensate for suboptimal alignment in the default allocator.
+  - To cluster related objects near one another.
+  - To obtain unconventional behavior.
+
+**Item 51: Adhere to convention when writing `new` and `delete`.**
+
+- `operator new` should contain an infinite loop trying to allocate memory, should call the new-handler if it can't satisfy a memory request, and should handle requests for zero bytes. Class-specific versions should handle requests for larger blocks than expected.
+  ```c++
+  class Base {
+   public:
+    static void* operator new(std::size_t size) throw(std::bad_alloc);
+    static void operator delete(void* rawMemory, std::size_t size) throw();
+    // ...
+  };
+  
+  class Derived : public Base {
+    // ...
+  };
+  
+  void* Base::operator new(std::size_t size) throw(std::bad_alloc) {
+    if (size != sizeof(Base)) {
+      return ::operator new(size);
+    }
+  
+    // ...
+  }
+  ```
+- `operator delete` should do nothing if passed a pointer that is null. Class-specific version should hander blocks that are larger than expected.
+  ```c++
+  void Base::operator delete(void* rawMemory, std::size_t size) throw() {
+    if (rawMemory == 0) {
+      return;
+    }
+  
+    if (size != sizeof(Base)) {
+      ::operator delete(rawMemory);
+      return;
+    }
+  
+    // ...
+  
+    return;
+  }
+  ```
+
+**Item 52: Write placement `delete` if you write placement `new`.**
+
+- When you write a placement version of `operator new`, be sure to write the corresponding placement version of `operator delete`. If you don't, your program may experience subtle, intermittent memory leaks.
+  - The runtime system looks for a version of `operator delete` that takes the same number and types of extra arguments as `operator new`, and, if it finds it, that's the one it calls.
+  - Placement `delete` is called only if an exception arises from a constructor call that's coupled to a call to a placement `new`. Applying `delete` to a pointer never yields a call to a placement version of `delete`.
+- When you declare placement versions of `new` and `delete`, be sure not to unintentionally hide the normal versions of those functions.
+  ```c++
+  class StandardNewDeleteForms {
+   public:
+    // normal new/delete
+    static void* operator new(std::size_t size) throw(std::bad_alloc) { 
+      return ::operator new(size); 
+    }
+    static void operator delete(void* pMemory) throw() { 
+      ::operator delete(pMemory); 
+    }
+  
+    // placement new/delete
+    static void* operator new(std::size_t size, void* ptr) throw() {
+      return ::operator new(size, ptr);
+    }
+    static void operator delete(void* pMemory, void* ptr) throw() { 
+      ::operator delete(pMemory, ptr); 
+    }
+    
+    // nothrow new/delete
+    static void* operator new(std::size_t size, const std::nothrow_t& nt) throw() {
+      return ::operator new(size, nt);
+    }
+    static void operator delete(void* pMemory, const std::nothrow_t& nt) throw() {
+      ::operator delete(pMemory, nt);
+    }
+  };
+  
+  class Widget : public StandardNewDeleteForms {
+   public:
+    using StandardNewDeleteForms::operator new;
+    using StandardNewDeleteForms::operator delete;
+  
+    static void* operator new(std::size_t size, std::ostream& logStream) throw(std::bad_alloc);
+    static void operator delete(void* pMemory, std::ostream& logStream) throw();
+    // ...
+  };
+  ```
 
 ## Ch. 9: Miscellany
 
