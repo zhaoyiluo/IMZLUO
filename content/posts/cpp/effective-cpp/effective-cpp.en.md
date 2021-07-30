@@ -1,5 +1,5 @@
 ---
-title: "[Notes] Effective C++, Third Edition"
+title: "[NOTE] Effective C++, Third Edition"
 subtitle: "55 Specific Ways to Improve Your Programs and Designs"
 date: 2021-04-19T00:03:54+08:00
 lastmod: 2021-04-19T00:03:54+08:00
@@ -15,7 +15,7 @@ featuredImage: ""
 featuredImagePreview: ""
 ---
 
-## Ch. 1: Accustoming Yourself to C++
+## CH1: Accustoming Yourself to C++
 
 **Item 1: View C++ as a federation of languages.**
 
@@ -68,7 +68,7 @@ featuredImagePreview: ""
 - The reference-returning functions are excellent candidates for inlining, especially if they're called frequently.
   - They are problematic in multithreaded systems. Solved by manually invoking all them during the single-threaded startup portion of the program.
 
-## Ch. 2: Constructors, Destructors, and Assignment Operators
+## CH2: Constructors, Destructors, and Assignment Operators
 
 **Item 5: Know what functions C++ silently writes and calls.**
 
@@ -126,7 +126,7 @@ featuredImagePreview: ""
 - Copying functions should be sure to copy all of an object's data members and all of its base class parts.
 - Don't try to implement one of the copying functions in terms of the other. Instead, put common functionality in a third function that both call.
 
-## Ch. 3: Resource Management
+## CH3: Resource Management
 
 **Item 13: Use objects to manage resources.**
 
@@ -155,7 +155,7 @@ featuredImagePreview: ""
 - Store `new`ed objects in smart pointers in standalone statements. Failure to do this can lead to subtle resource leaks when exceptions are throw.
   - An exception can intervene between the time a resource is created and the time that resource is turned over to a resource-managing object.
 
-## Ch. 4: Designs and Declarations
+## CH4: Designs and Declarations
 
 **Item 18: Make interfaces easy to use correctly and hard to use incorrectly.**
 
@@ -251,7 +251,7 @@ featuredImagePreview: ""
     }  // namespace std
     ```
 
-## Ch. 5: Implementations
+## CH5: Implementations
 
 **Item 26: Postpone variable definitions as long as possible.**
 
@@ -385,7 +385,7 @@ featuredImagePreview: ""
     ```
 - Library header files should exist in full and declaration-only forms. This applies regardless of whether templates are involved.
 
-## Ch. 6: Inheritance and Object-Oriented Design
+## CH6: Inheritance and Object-Oriented Design
 
 **Item 32: Make sure public inheritance models "is-a."**
 
@@ -537,7 +537,7 @@ featuredImagePreview: ""
   - The responsibility for initializing a virtual base is borne by the most derived class in the hierarchy.
 - Multiple inheritance does have legitimate uses. One scenario involves combining public inheritance from an Interface class with private inheritance from a class that helps with implementation.
 
-## Ch. 7: Templates and Generic Programming
+## CH7: Templates and Generic Programming
 
 **Item 41: Understand implicit interfaces and compile-time polymorphism.**
 
@@ -667,7 +667,7 @@ featuredImagePreview: ""
   - Compilers are obliged to make sure that all source code is valid, even if it's not executed.
 - TMP can be used to generate custom code based on combinations of policy choices, and ti can also be used to avoid generating code inappropriate for particular types.
 
-## Ch. 8: Customizing new and delete
+## CH8: Customizing new and delete
 
 **Item 49: Understand the behavior of the new-handler.**
 
@@ -807,7 +807,7 @@ featuredImagePreview: ""
   };
   ```
 
-## Ch. 9: Miscellany
+## CH9: Miscellany
 
 **Item 53: Pay attention to compiler warnings.**
 
