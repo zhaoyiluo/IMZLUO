@@ -26,11 +26,11 @@ Item 1: Distinguish between pointers and references
 - When you're implementing certain operators, there are some situations in which you should use a reference. The most common example is `operator[]`.
 
   ```c++
-  // undefined behavior
+  // Undefined behavior
   char* pc = 0;
   char& rc = *pc;
   
-  // no need to check if it is a null reference
+  // No need to check if it is a null reference
   void printDouble(const double& rd) { 
     std::cout << rd << std::endl; 
   }
@@ -43,6 +43,43 @@ Item 1: Distinguish between pointers and references
   ```
 
 Item 2: Prefer C++-style casts
+
+- `static_cast` has basically the same power and meaning as the general-purpose C-style cast.
+
+- `const_cast` is used to cast away the `const`ness or `volatile`ness of an expression.
+
+- `dynamic_cast` is used to perform safe casts down or across an inheritance hierarchy.
+
+  - Failed casts are indicated by a null pointer (when casting pointers) or an exception (when casting references).
+  - They cannot be applied to types lacking virtual functions, nor can they cast away `const`ness.
+
+- `reinterpret_cast` is used to perform type conversions whose result is nearly always implementation-defined.
+
+  ```c++
+  // Example: static_cast
+  int first_number = 1, second_number = 1;
+  double result = static_cast<double>(first_number) / second_number;
+  
+  // Example: const_cast
+  const int val = 10;
+  const int *const_ptr = &val;
+  int *nonconst_ptr = const_cast<int *>(const_ptr);
+  
+  // Example: dynamic_cast
+  class Base {
+    virtual void DoIt() { std::cout << "This is Base" << std::endl; }
+  };
+  class Derived : public Base {
+    virtual void DoIt() { std::cout << "This is Derived" << std::endl; }
+  };
+  Base *b = new Derived();
+  Derived *d = dynamic_cast<Derived *>(b);
+  
+  // Example: reinterpret_cast
+  int *a = new int();
+  void *b = reinterpret_cast<void *>(a);  // the value of b is unspecified
+  int *c = reinterpret_cast<int *>(b);    // a and c contain the same value
+  ```
 
 Item 3: Never treat arrays polymorphically
 
