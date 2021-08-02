@@ -83,7 +83,74 @@ Item 2: Prefer C++-style casts
 
 Item 3: Never treat arrays polymorphically
 
+- The language specification says the result of deleting an array of derived class objects through a base class pointer is undefined.
+
+  ```c++
+  class BST {
+    friend std::ostream& operator<<(std::ostream& s, const BST& data);
+  };
+  class BalancedBST : public BST {};
+  
+  // Note: array[i] is really just shorthand for an expression involving pointer
+  // arithmetic, and it stands for *(array+i)
+  void printBSTArray(std::ostream& s, const BST array[], int numElements) {
+    for (int i = 0; i < numElements; ++i) {
+      s << array[i];
+    }
+  }
+  
+  BalancedBST bBSTArray[10];
+  // They'd assume each object in the array is the size of BST, but each object
+  // would actually be the size of a BalancedBST
+  printBSTArray(std::cout, bBSTArray, 10);
+  ```
+
 Item 4: Avoid gratuitous default constructors
+
+- If a class lacks a default constructor, its use may be problematic in three contexts.
+
+  - The creation of arrays.
+    - There's no way to specify constructor arguments for objects in arrays.
+  - Ineligible for use with many template-based container classes.
+    - It's common requirement for such templates that the type used to instantiate the template provide a default constructor.
+  - Virtual base classes lacking default constructors are a pain to work with.
+    - The arguments for virtual base class constructors must be provided by the most derived class of the object being constructed.
+
+  ```c++
+  // Example: the creation of arrays
+  class EquipmentPiece {
+   public:
+    EquipmentPiece(int IDNumber);
+    // ...
+  };
+  
+  // Solution 1
+  // Provide the necessary arguments at the point where the array is defined
+  int ID1, ID2, ID3, ..., ID10;
+  // ...
+  EquipmentPiece bestPieces[] = {ID1, ID2, ID3, ..., ID10};
+  
+  // Solution 2
+  // Use an array of pointers instead of an array of objects
+  typedef EquipmentPiece* PEP;
+  PEP bestPieces[10];             // on the stack
+  PEP* bestPieces = new PEP[10];  // on the heap
+  for (int i = 0; i < 10; ++i) {
+    bestPieces[i] = new EquipmentPiece(/* ID Number */);
+  }
+  
+  // Solution 3
+  // Allocate the raw memory for the array, then use "placement new" to construct
+  void* rawMemory = operator new[](10 * sizeof(EquipmentPiece));
+  EquipmentPiece* bestPieces = static_cast<EquipmentPiece*>(rawMemory);
+  for (int i = 0; i < 10; ++i) {
+    new (&bestPieces[i]) EquipmentPiece(/* ID Number */);
+  }
+  for (int i = 9; i >= 0; --i) {
+    bestPieces[i].~EquipmentPiece();
+  }
+  operator delete[] bestPieces;
+  ```
 
 ## CH2: Operators
 
