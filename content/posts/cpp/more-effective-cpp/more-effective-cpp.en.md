@@ -156,11 +156,130 @@ Item 4: Avoid gratuitous default constructors
 
 Item 5: Be wary of user-defined conversion functions
 
+- Two kinds of functions allow compilers to perform implicit type conversions.
+
+  - A single-argument constructor is a constructor that may be called with only one argument.
+  - An implicit type conversion operator is simply a member function with a strange-looking name: the word `operator` followed by a type specification.
+
+- Constructors can be declared `explicit`, and if they are, compilers are prohibited from invoking them for purposes of implicit type conversion.
+
+- Proxy objects can give you control over aspects f your software's behavior, in this case implicit type conversions, that is otherwise beyond our grasp.
+
+  - No sequence of conversions is allowed to contain more than one user-defined conversion.
+
+  ```c++
+  // The single-argument constructors
+  class Name {
+   public:
+    Name(const std::string& s);
+    // ...
+  };
+  
+  // The implicit type conversion operators
+  class Rational {
+   public:
+    operator double() const;
+  };
+  
+  // Usage of `explicit`
+  template <class T>
+  class Array {
+   public:
+    // ...
+    explicit Array(int size);
+    // ...
+  };
+  
+  // Usage of proxy classes
+  template <class T>
+  class Array {
+   public:
+    class ArraySize {  // this class is new
+     public:
+      ArraySize(int numElements) : theSize(numElements) {}
+      int size() const { return theSize; }
+  
+     private:
+      int theSize;
+    };
+  
+    Array(int lowBound, int highBound);
+    Array(ArraySize size);  // note new declaration
+  };
+  ```
+
 Item 6: Distinguish between prefix and postfix forms of increment and decrement operators
+
+- The prefix forms return a reference, while the post forms return a `const` object.
+
+- While dealing with user-defined types, prefix increment should be used whenever possible, because it's inherently more efficient.
+
+- Postfix increment and decrement should be implemented in terms of their prefix counterparts.
+
+  ```c++
+  class UPInt {
+   public:
+    UPInt& operator++();          // prefix ++
+    const UPInt operator++(int);  // postfix ++
+    UPInt& operator--();          // prefix --
+    const UPInt operator--(int);  // postfix --
+    UPInt& operator+=(int);       // a += operator for UPInts and ints
+  };
+  
+  UPInt& UPInt::operator++() {
+    *this += 1;
+    return *this;
+  }
+  
+  const UPInt UPInt::operator++(int) {
+    UPInt oldValue = *this;
+    ++(*this);
+    return oldValue;
+  }
+  ```
 
 Item 7: Never overload `&&`, `||`, or `,`
 
+- C++ employs short-circuit evaluation of boolean expressions, but function call semantics differ from short-circuit semantics in two crucial ways.
+  - When a function call is made, all parameters must be evaluated, so when calling the function `operators&&` and `operator||`, both parameters are evaluated.
+  - The language specification leaves undefined the order of evaluation of parameters to a function call, so there is no way of knowing whether `expression1` or `expression2` well be evaluated first. 
+- An expression containing a comma is evaluated by first evaluating the part of the expression to the left of the comma, then evaluating the expression to the right of the comma; the result of the overall comma expression is the value of the expression on the right.
+
 Item 8: Understand the different meanings of `new` and `delete`
+
+- The `new` you are using is the `new` operator.
+
+  - First, it allocates enough memory to hold an object of the type requested. The name of the function the `new` operator calls to allocate memory is `operator new`.
+  - Second, it calls a constructor to initialize an object in the memory that was allocated.
+  - A special version of `operator new` called placement `new` allows you to call a constructor directly.
+
+- The function `operator delete` is to the built-in `delete` operator as `operator new` is to the `new` operator.
+
+- There is only one global `operator new`, so if you decide to claim it as your own, you instantly render your software incompatible with any library that makes the same decision.
+
+  ```c++
+  // `new` operator:
+  // Step 1: void *memory = operator new(sizeof(std::string))
+  // Step 2: call std::string::string("Memory Management") on *memory
+  // Step 3: std::string *ps = static_cast<std::string*>(memory)
+  //
+  // `delete` operator:
+  // Step 1: ps->~string()
+  // Step 2: operator delete(ps)
+  
+  // Placement `new`:
+  class Widget {
+   public:
+    Widget(int widgetSize);
+    // ...
+  };
+  // It's just a use of the `new` operator with an additional argument
+  // (buffer) is being specified for the implicit call that the `new`
+  // operator makes to `operator new`
+  Widget* constructWidgetInBuffer(void* buffer, int widgetSize) {
+    return new (buffer) Widget(widgetSize);
+  }
+  ```
 
 ## CH3: Exceptions
 
