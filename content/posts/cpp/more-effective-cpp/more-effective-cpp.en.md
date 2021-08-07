@@ -285,17 +285,195 @@ Item 8: Understand the different meanings of `new` and `delete`
 
 Item 9: Use destructors to prevent resource leaks
 
+- By adhering to the rule that resources should be encapsulated inside objects, you can usually avoid resource leaks in the presence of exceptions.
+
 Item 10: Prevent resource leaks in constructors
+
+- C++ destroys only fully constructed objects, and an object isn't fully constructed until its constructor has return to completion.
+
+- If you replace pointer class members with their corresponding `auto_ptr` objects, you fortify your constructors against resource leaks in the presence of exceptions, you eliminate the need to manually deallocate resources in destructors, and you allow `const` member pointers to be handled in the same graceful fashion as non-`const` pointers.
+
+  ```c++
+  class BookEntry;
+  
+  // If BookEntry's constructor throws an exception, pb will be the null pointer,
+  // so deleting it in the catch block does nothing except make you feel better
+  // about yourself
+  void testBookEntryClass() {
+    BookEntry* pb = 0;
+    try {
+      pb = new BookEntry(/* ... */);
+      // ...
+    } catch (/* ... */) {
+      delete pb;
+      throw;
+    }
+    delete pb;
+  }
+  ```
 
 Item 11: Prevent exceptions from leaving destructors
 
+- You must write your destructors under the conservative assumption that an exception is active, because if an exception is thrown while another is active, C++ calls the `terminate` function.
+
+- If an exception is throw from a destructor and is not caught there, that destructor won't run to completion.
+
+- There are two good reasons for keeping exceptions from propagating out of destructors.
+
+  - It prevents `terminate` from being called during the stack-unwinding part of exception propagation.
+  - It helps ensure that desturctors always accomplish everything they are supposed to accomplish.
+
+  ```c++
+  class MyClass {
+   public:
+    void doSomeWork();
+    // ...
+  };
+  
+  try {
+    MyClass obj;
+    // If an exception is thrown from doSomeWork, before execution moves out from the try block,
+    // the destructor of obj needs to be called as obj is a properly constructed object
+    // What if an exception is also thrown from the destructor of obj?
+    obj.doSomeWork();
+    // ...
+  } catch (std::exception& e) {
+    // do error handling
+  }
+  ```
+
 Item 12: Understand how throwing an exception differs from passing a parameter or calling a virtual function
+
+- Exception objects are always copied; when caught by value, they are copied twice. Objects passed to function parameters need not be copied at all.
+
+  - When an object is copied for use as an exception, the copying is performed by the object's copy constructor. This copy constructor is the one in the class corresponding to the object's static type, not its dynamic type.
+  - Passing a temporary object to a non-`const` reference parameter is not allowed for function calls, but it is for exceptions.
+
+- Objects thrown as exceptions are subject to fewer forms of type conversion than are objects passed to functions.
+
+  - A `catch` clause for base class exceptions is allowed to handle exceptions of derived class types.
+  - From a typed to an untyped pointer.
+
+- `catch` clauses are examined in the order in which they appear in the source ode, and the first one that can succeed is selected for execution.
+
+  - Never put a `catch` clause for a base class before a `catch` clause for a derived class.
+
+  ```c++
+  // Difference 1
+  class Widget {};
+  class SpecialWidget : public Widget {};
+  
+  void passAndThrowWidget() {
+    SpecialWidget localSpecialWidget;
+    // ...
+    Widget& rw = localSpecialWidget;  // rw refers to a SpecialWidget
+    throw rw;                         // this throws an exception of type Widget
+  }
+  
+  try {
+    passAndThrowWidget();
+  }
+  catch (Widget& w) {    // catch Widget exceptions
+    // ...               // handle the exception
+    throw;               // rethrow the exception so it continues to propagate
+  } catch (Widget& w) {  // catch Widget exceptions
+    // ...               // handle the exception
+    throw w;             // propagate a copy of the caught exception
+  }
+  
+  // Difference 2
+  // Can catch errors of type runtime_error, range_error, or overflow_error
+  catch (std::runtime_error);
+  catch (std::runtime_error&);
+  catch (const std::runtime_error&);
+  // Can catch any exception that's a pointer
+  catch(const void*);
+  
+  // Difference 3
+  try {
+    // ...
+  } catch (std::invalid_argument& ex) {
+    // ...
+  } catch (std::logic_error& ex) {
+    // ...
+  }
+  ```
 
 Item 13: Catch exception specifications judiciously
 
+- If you try to catch exceptions by pointer, you must define exception objects in a way that guarantees the objects exist after control leaves the functions throwing pointers to them. Global and static objects work fine, but it's easy for you to forget the constraint.
+  
+  - The four standard exceptions, `bad_alloc`, `bad_cast`, `bad_typeid`, and `bad_exception` are all objects, not pointers to objects.
+  
+- If you try to catch exceptions by value, it requires that exception objects be copied twice each time they're thrown and also gives rise to the specter of the *slicing problem*.
+
+- If you try to catch exceptions by reference, you sidestep questions about object deletion that leave you demand if you do and damned if you don't; you avoid slicing exception objects; you retain the ability to catch standard exceptions; and you limit the number of times exception objects need to be copied.
+
 Item 14: Use exception specifications judiciously
 
+- The default behavior for `unexpected` is to call `terminate`, and the default behavior for `terminate` is to call `abort`, so the default behavior for a program with a violated exception specification is to halt.
+
+- Compilers only partially check exception usage for consistency with exception specifications. What they do not check for is a call to a function that might violate the exception specification of the function making the call.
+
+- Avoid putting exception specifications on templates that take type arguments.
+
+- Omit exception specifications on functions making calls to functions that themselves lack exception specifications.
+
+  - One case that is easy to forget is when allowing users to register callback functions.
+
+- Handle exceptions "the system" may throw.
+
+- If preventing exceptions isn't practical, you can exploit the fact that C++ allows you to replace unexpected exceptions with exceptions of a different type.
+
+- Exception specifications result in `unexpected` being invoked even when a higher-level caller is prepared to cope with the exception that's arisen.
+
+  ```c++
+  // Partially check
+  extern void f1();
+  void f2() throw(int) {
+    // ...
+    f1();  // legal even though f1 might throw something besides an int
+    // ...
+  }
+  
+  // A poorly designed template wrt exception specifications
+  // Overloaded operator& may throw an exception
+  template <class T>
+  bool operator==(const T& lhs, const T& rhs) throw() {
+    return &lhs == &rhs;
+  }
+  
+  // Replace the default unexpected function
+  class UnexpectedException {
+  };  // all unexpected exception objects will be replaced by objects of this type
+  void convertUnexpected() {
+    throw UnexpectedException();
+  }  // function to call if an unexpected exception is thrown
+  std::set_unexpected(convertUnexpected);
+  
+  // Suppose some function called by logDestruction throws an exception
+  // When this unanticipated exception propagates through logDestruction, unexpected
+  // will be called
+  class Session {
+   public:
+    ~Session();
+    // ...
+   private:
+    static void logDestruction(Session* objAddr) throw();
+  };
+  
+  Session::~Session() {
+    try {
+      logDestruction(this);
+    } catch (/* ... */) {
+      // ...
+    }
+  }
+  ```
+
 Item 15: Understand the costs of exception handling
+
+- To minimize your exception-related costs, compile without support for exceptions when that is feasible; limit your use of `try` blocks and exception specifications to those locations where you honestly need them; and throw exceptions only under conditions that are truly exceptional.
 
 ## CH4: Efficiency
 
