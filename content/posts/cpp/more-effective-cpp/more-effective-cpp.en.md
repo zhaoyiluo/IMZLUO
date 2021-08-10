@@ -479,21 +479,210 @@ Item 15: Understand the costs of exception handling
 
 Item 16: Remember the 80-20 rule
 
+- The overall performance of your software is almost always determined by a small part of its constituent code.
+
+- The best way to guard against these kinds of pathological results is to profile your software using as many data sets as possible.
+
 Item 17: Consider using lazy evaluation
+
+- When you employ lazy evaluation, you write your classes in such a way that they defer computations until the results of those computations are required.
+
+  - To avoid unnecessary copying of objects.
+  - To distinguish reads from writes using `operator[]`.
+  - To avoid unnecessary reads from databases.
+  - To avoid unnecessary numerical computations.
+
+- Lazy evaluation is only useful when there's a reasonable chance your software will be asked to perform computations that can be avoided.
+
+  ```c++
+  // Example 1: Reference Counting
+  class String;
+  String s1 = "Hello";
+  String s2 = s1;           // call String copy constructor
+  std::cout << s1;          // read s1's value
+  std::cout << s1 + s2;     // read s1's and s2's values
+  s2.convertToUpperCase();  // don't bother to make a copy of something until you really need one
+  
+  // Example 2: Distinguish Reads from Writes
+  String s = "Homer's Iliad";
+  std::cout << s[3];  // call operator[] to read s[3]
+  s[3] = 'x';         // call operator[] to write s[3]
+  
+  // Example 3: Lazy Fetching
+  class ObjectID;
+  class LargeObject {
+   public:
+    LargeObject(ObjectID id);
+    const std::string& field1() const;
+    int field2() const;
+    double field3() const;
+    const std::string& field4() const;
+    // ...
+   private:
+    ObjectID oid;
+    mutable std::string* field1Value;
+    mutable int* field2Value;
+    mutable double* field3Value;
+    mutable std::string* field4Value;
+  };
+  
+  LargeObject::LargeObject(ObjectID id)
+      : oid(id), field1Value(0), field2Value(0), field3Value(0), field4Value(0) {}
+  
+  const std::string& LargeObject::field1() const {
+    if (field1Value == 0) {
+      // Read the data for field 1 from the database and make field1Value point to it
+    }
+    return *field1Value;
+  }
+  
+  // Example 4: Lazy Expression Evaluation
+  template <class T>
+  class Matrix {};
+  
+  Matrix<int> m1(1000, 1000);
+  Matrix<int> m2(1000, 1000);
+  
+  Matrix<int> m3 = m1 + m2;  // set up a data structure inside m3 that includes some information
+  
+  Matrix<int> m4(1000, 1000);
+  m3 = m4 * m1;  // no need to actually calculate the result of m1 + m2 previously
+  ```
 
 Item 18: Amortize the cost of expected computations
 
+- Over-eager evaluation is a technique for improving the efficiency of programs when you must support operations whose results are almost always needed or whose results are often needed more than once.
+
+  - Caching values that have already been computed and are likely to be needed again.
+  - Prefetching demands a place to put the things that are prefetched, but it reduces the time need to access those things.
+
 Item 19: Understand the origin of temporary objects
+
+- True temporary objects in C++ are invisible -- they don't appear in your source code. They arise whenever a non-heap object is created but no named.
+
+  - When implicit type conversions are applied to make function calls succeed.
+
+  - When functions return objects.
+
+    ```c++
+    // Situation 1:
+    unsigned int countChar(const std::string& str, char ch);
+    char buffer[MAX_STRING_LEN];
+    char c;
+    
+    // Create a temporary object of type string and the object is initialized by calling
+    // the string constructor with buffer as its argument
+    // These conversions occur only when passing objects by value or when passing to a
+    // reference-to-const parameter
+    countChar(buffer, c);
+    
+    // Situation 2:
+    class Number;
+    // The return value of this function is a temporary
+    const Number operator+(const Number& lhs, const Number& rhs);
+    ```
 
 Item 20: Facilitate the return value optimization
 
+- It is frequently possible to write functions that return objects in such a way that compilers can eliminate the cost of the temporaries. The trick is to return constructor arguments instead of objects.
+
+  ```c++
+  class Rational {
+   public:
+    Rational(int numerator = 0, int denominator = 1);
+    // ...
+    int numerator() const;
+    int denominator() const;
+  
+   private:
+    int numerator;
+    int denominator;
+  };
+  
+  // Usage 1: without RVO
+  // Step 1: call constructor to initialize result
+  // Step 2: call copy constructor to copy local variable result from callee to caller (temporary
+  // variable)
+  // Step 3: call destructor to destruct local variable result
+  const Rational operator*(const Rational& lhs, const Rational& rhs) {
+    Rational result(lhs.numerator() * rhs.numerator(), lhs.denominator() * rhs.denominator());
+  
+    return result;
+  }
+  
+  // Usage 2: without RVO
+  // Step: caller directly initialize variable defined by the return expression inside the allocated
+  // memory
+  const Rational operator*(const Rational& lhs, const Rational& rhs) {
+    return Rational(lhs.numerator() * rhs.numerator(), lhs.denominator() * rhs.denominator());
+  }
+  ```
+
 Item 21: Overload to avoid implicit type conversions
+
+- By declaring several functions, each with a different set of parameter types to eliminate the need for type conversions.
+
+  ```c++
+  class UPInt {
+   public:
+    UPInt();
+    UPInt(int value);
+    // ...
+  };
+  
+  // Overloaded functions to eliminate type conversions
+  const UPInt operator+(const UPInt& lhs, const UPInt& rhs);
+  const UPInt operator+(const UPInt& lhs, int rhs);
+  const UPInt operator+(int lhs, const UPInt& rhs);
+  
+  // Not allowed
+  // Every overloaded operator must take at least one argument of a user-defined type
+  const UPInt operator+(int lhs, int rhs);
+  ```
 
 Item 22: Consider using `op=` instead of strand-alone `op`
 
+- A good way to ensure that the natural relationship between the assignment version of an operator (e.g., `operator+=`) and the stand-alone version (e.g., `operator+`) exists is to implement the latter in terms of the former.
+
+- In general, assignment versions of operators are more efficient than stand-alone versions, because stand-alone versions must typically return a new object, and that costs us the construction and destruction of a temporary. Assignment versions of operators write to their left-hand argument, so there is no need to generate a temporary to hold the operator's return value.
+
+- By offering assignment versions of operators as well as stand-alone versions, you allow clients of your classes to make the difficult trade-off between efficiency and convenience.
+
+  ```c++
+  class Rational {
+   public:
+    // ...
+    Rational& operator+=(const Rational& rhs);
+    Rational& operator-=(const Rational& rhs);
+  };
+  
+  const Rational operator+(const Rational& lhs, const Rational& rhs) { return Rational(lhs) += rhs; }
+  const Rational operator-(const Rational& lhs, const Rational& rhs) { return Rational(lhs) += rhs; }
+  
+  // Eliminate the need to write the stand-alone functions
+  // The corresponding stand-alone operator will automatically be generated if it's needed
+  template <class T>
+  const T operator+(const T& lhs, const T& rhs) {
+    return T(lhs) += rhs;
+  }
+  template <class T>
+  const T operator-(const T& lhs, const T& rhs) {
+    return T(lhs) -= rhs;
+  }
+  ```
+
 Item 23: Consider alternative libraries
 
+- Different libraries embody different design decisions regarding efficiency, extensibility, portability, type safety, and other issues. You can sometimes significantly improve the efficiency of your software by switching to libraries whose designers gave more weight to performance considerations than to other factors.
+
 Item 24: Understand the costs of virtual functions, multiple inheritance, virtual base classes, and RTTI
+
+| Feature              | Increases <br />Size of Objects | Increases<br />Per-Class Data | Reduces<br />Inlining |
+| -------------------- | ------------------------------- | ----------------------------- | --------------------- |
+| Virtual Functions    | Yes                             | Yes                           | Yes                   |
+| Multiple Inheritance | Yes                             | Yes                           | No                    |
+| Virtual Base Classes | Yes                             | No                            | No                    |
+| RTTI                 | No                              | Yes                           | No                    |
 
 ## CH5: Techniques
 
