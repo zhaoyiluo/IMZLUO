@@ -688,17 +688,783 @@ Item 24: Understand the costs of virtual functions, multiple inheritance, virtua
 
 Item 25: Virtualizing constructors and non-member functions
 
+- A virtual constructor is a function that creates different types of objects depending on the input it is given.
+
+- A virtual copy constructor returns a pointer to a new copy of the object invoking the function.
+
+- No longer must a derived class's redefinition of a base class's virtual function declare the same return type.
+
+- You write virtual functions to do the work, then write a non-virtual function that does nothing but call the virtual function.
+
+  ```c++
+  class NLComponent {
+   public:
+    virtual NLComponent* clone() const = 0;  // virtual copy constructor
+    virtual std::ostream& print(std::ostream& s) const = 0;
+    // ...
+  };
+  
+  class TextBlock : public NLComponent {
+   public:
+    virtual TextBlock* clone() const { return new TextBlock(*this); }  // virtual copy constructor
+    virtual std::ostream& print(std::ostream& s) const;
+    // ...
+  };
+  
+  class Graphic : public NLComponent {
+   public:
+    virtual Graphic* clone() const { return new Graphic(*this); }  // virtual copy constructor
+    virtual std::ostream& print(std::ostream& s) const;
+    // ...
+  };
+  
+  class NewsLetter {
+   public:
+    NewsLetter(std::istream& str);
+  
+   private:
+    static std::list<NLComponent*> components;
+  };
+  
+  NLComponent* readComponent(std::istream& str);  // virtual constructor
+  
+  NewsLetter::NewsLetter(std::istream& str) {
+    while (str) {
+      components.push_back(readComponent(str));
+    }
+  }
+  
+  // Make non-member functions act virtual
+  inline std::ostream& operator<<(std::ostream& s, const NLComponent& c) { return c.print(s); }
+  ```
+
 Item 26: Limiting the number of objects of a class
+
+- The easiest way to prevent objects of a particular class from being created is to declare the constructors of that class private.
+
+  - If you create an inline non-member function containing a local static object, you may end up with more than one copy of the static object in your program due to internal linkage.
+
+- The object construction can exist in three different contexts: on their own, as base class parts of more derived objects, and embedded inside larger objects.
+
+  ```C++
+  // Allowing zero or one objects
+  class PrintJob {
+   public:
+    PrintJob(const std::string& whatToPrint);
+    // ...
+  };
+  
+  class Printer {
+   public:
+    void submitJob(const PrintJob& job);
+    void reset();
+    void performSelfTest();
+    // ...
+  
+    // Design choice 1: be friend
+    friend Printer& thePrinter();
+    // Design choice 2: be static
+    static Printer& thePrinter();
+  
+   private:
+    Printer();
+    Printer(const Printer& rhs);
+    // ...
+  };
+  
+  // It's important that the single Printer object be static in a function and not in a class.
+  // An object that's static in a class is, for all intents and purposes, always constructed (and
+  // destructed), even if it's never used. In contrast, an object that's static in a function is
+  // created the first time through the function, so if the function is never called, the object is
+  // never created
+  
+  // Design choice 1: be friend
+  Printer& thePrinter() {
+    static Printer p;
+    return p;
+  }
+  thePrinter().reset();
+  thePrinter().submitJob(std::string());
+  
+  // Design choice 2: be static
+  Printer& Printer::thePrinter() {
+    static Printer p;
+    return p;
+  }
+  Printer::thePrinter().reset();
+  Printer::thePrinter().submitJob(std::string());
+  ```
+
+  ```c++
+  // Allowing objects to come and go
+  class Printer {
+   public:
+    class TooManyObjects {};
+    static Printer* makePrinter();
+    static Printer* makePrinter(const Printer& rhs);
+    // ...
+  
+   private:
+    static unsigned int numObjects;
+    static const int maxObjects = 10;
+  
+    Printer();
+    Printer(const Printer& rhs);
+  };
+  
+  unsigned int Printer::numObjects = 0;
+  const int Printer::maxObjects;
+  
+  Printer::Printer() {
+    if (numObjects >= maxObjects) {
+      throw TooManyObjects();
+    }
+    // ...
+  }
+  
+  Printer::Printer(const Printer& rhs) {
+    if (numObjects >= maxObjects) {
+      throw TooManyObjects();
+    }
+    // ...
+  }
+  
+  Printer* Printer::makePrinter() { return new Printer; }
+  
+  Printer* Printer::makePrinter(const Printer& rhs) { return new Printer(rhs); }
+  ```
+
+  ```c++
+  // An object-counting base class
+  template <class BeingCounted>
+  class Counted {
+   public:
+    class TooManyObjects {};
+    static int objectCount() { return numObjects; }
+  
+   protected:
+    Counted();
+    Counted(const Counted& rhs);
+    ~Counted() { --numObjects; }
+  
+   private:
+    static int numObjects;
+    static int maxObjects;
+    void init();
+  };
+  
+  template <class BeingCounted>
+  Counted<BeingCounted>::Counted() {
+    init();
+  }
+  
+  template <class BeingCounted>
+  Counted<BeingCounted>::Counted(const Counted<BeingCounted>&) {
+    init();
+  }
+  
+  template <class BeingCounted>
+  void Counted<BeingCounted>::init() {
+    if (numObjects >= maxObjects) {
+      throw TooManyObjects();
+    }
+    ++numObjects;
+  }
+  
+  class PrintJob;
+  
+  class Printer : private Counted<Printer> {
+   public:
+    static Printer* makePrinter();
+    static Printer* makePrinter(const Printer& rhs);
+    ~Printer();
+    void submitJob(const PrintJob& job);
+    void reset();
+    void performSelfTest();
+  
+    // Make public for clients of Printer
+    using Counted<Printer>::objectCount;
+    using Counted<Printer>::TooManyObjects;
+  
+   private:
+    Printer();
+    Printer(const Printer& rhs);
+  };
+  ```
 
 Item 27: Requiring or prohibiting heap-based objects
 
+- Restricting access to a class's destructor or its constructors also prevents both inheritance and containment.
+
+  - The inheritance problem can be solved by making a class's destructor protected.
+  - The classes that need to contain heap-based objects can be modified to contain pointers to them.
+
+- There's not only no portable way to determine whether an object is on the heap, there isn't even a semi-portable way that works most of the time.
+
+  - A mixin ("mix in") class offers derived classes the ability to determine whether a pointer was allocated from `operator new`.
+
+- The fact that the stack-based class's `operator new` is private has no effect on attempts to allocate objects containing them as members.
+
+  ```c++
+  // Require heap-based objects
+  class UPNumber {
+   public:
+    UPNumber();
+    UPNumber(int initValue);
+    UPNumber(double initValue);
+    UPNumber(const UPNumber& rhs);
+    // pseudo-destructor
+    void destroy() const { delete this; }
+    // ...
+  
+   protected:
+    ~UPNumber();
+  };
+  
+  // Derived classes have access to protected members
+  class NonNegativeNumber : public UPNumber {};
+  
+  // Contain pointers to head-based objects
+  class Asset {
+   public:
+    Asset(int initValue);
+    ~Asset();
+    // ...
+  
+   private:
+    UPNumber* value;
+  };
+  
+  Asset::Asset(int initValue) : value(new UPNumber(initValue)) {}
+  Asset::~Asset() { value->destroy(); }
+  ```
+
+  ```c++
+  // Determine whether an object is on the heap
+  class HeapTracked {
+   public:
+    class MissingAddress {};
+    virtual ~HeapTracked() = 0;
+    static void *operator new(size_t size);
+    static void operator delete(void *ptr);
+    bool isOnHeap() const;
+  
+   private:
+    typedef const void *RawAddress;
+    static std::list<RawAddress> addresses;
+  };
+  
+  std::list<HeapTracked::RawAddress> HeapTracked::addresses;
+  
+  HeapTracked::~HeapTracked() {}
+  
+  void *HeapTracked::operator new(size_t size) {
+    void *memPtr = ::operator new(size);
+    addresses.push_back(memPtr);
+    return memPtr;
+  }
+  
+  void HeapTracked::operator delete(void *ptr) {
+    std::list<RawAddress>::iterator it = std::find(addresses.begin(), addresses.end(), ptr);
+    if (it != addresses.end()) {
+      addresses.erase(it);
+      ::operator delete(ptr);
+    } else {
+      throw MissingAddress();
+    }
+  }
+  
+  // dynamic_cast is applicable only to pointers to objects that have at least one virtual function
+  // and it gives us a pointer to the beginning of the memory for the current object
+  bool HeapTracked::isOnHeap() const {
+    const void *rawAddress = dynamic_cast<const void *>(this);
+    std::list<RawAddress>::iterator it = std::find(addresses.begin(), addresses.end(), rawAddress);
+    return it != addresses.end();
+  }
+  
+  class Asset : public HeapTracked {
+   private:
+    UPNumber value;
+    // ...
+  };
+  
+  void inventoryAsset(const Asset *ap) {
+    if (ap->isOnHeap()) {
+      // ...
+    } else {
+      // ...
+    }
+  }
+  ```
+
+  ```c++
+  // Prohibit heap-based objects
+  class Asset {
+   public:
+    Asset(int initValue);
+    // ...
+  
+   private:
+    UPNumber value;  // has private operator new
+  };
+  
+  Asset* pa = new Asset(100);  // calls Asset::operator new or ::operator new,
+                               // not UPNumber::operator new
+  ```
+
 Item 28: Smart pointers
+
+- Passing `auto_ptr`s by value, then, is something to be done only if you're sure you want to transfer ownership of an object to a (transient) function parameter.
+
+- The `operator*` function just returns a reference to the pointed-to object such that `pointee` need not point to an object of type `T`, while it may point to an object of a class derived from `T`. The `operator->` function returns a dumb pointer to an object or another smart pointer object as it must be legal to apply the member-selection operator (->) to it.
+
+- Overload `operator!` for your smart pointer classes so that `operator!` returns `true` if and only if the smart pointer on which it's invoked is null.
+
+- Do not provide implicit conversion operators to dumb pointers unless there is a compelling reason to do so.
+
+- Use member function templates to generate smart pointer conversion functions for inheritance-based type conversions.
+
+  - Smart pointers employ member functions as conversion operators, and as far as C++ compilers are concerned, all calls to conversion functions are equally good. The best we can do is to use member templates to generate conversion functions, then use casts in those cases where ambiguity results.
+
+- Implement smart pointers by having each smart pointer-to-`T`-class publicly inherit from a corresponding smart pointer-to-`const`-`T` class.
+
+  ```c++
+  // Test smart pointers for nullness
+  template <class T>
+  class SmartPtr {
+   public:
+    // Could work, but ...
+    operator void*();
+  };
+  
+  class TreeNode;
+  class Apple;
+  class Orange;
+  
+  SmartPtr<TreeNode> ptn;
+  
+  if (ptn == 0)  // now fine
+  if (ptn)  // also fine
+  if (!ptn)  // fine
+  
+  SmartPtr<Apple> pa;
+  SmartPtr<Orange> po;
+  
+  if (pa == po);  // this compiles!
+  
+  template <class T>
+  class SmartPtr {
+   public:
+    // Much better
+    bool operator!() const;
+  };
+  
+  if (!ptn) {
+    // ...
+  } else {
+    // ...
+  }
+  ```
+
+  ```c++
+  // Smart pointers and const
+  template <class T>
+  class SmartPtrToConst {
+    // ...
+   protected:
+    union {
+      const T* constPointee;
+      T* pointee;
+    };
+  };
+  
+  template <class T>
+  class SmartPtr : public SmartPtrToConst<T> {
+    // ...
+  };
+  
+  class CD;
+  SmartPtr<CD> pCD = new CD("Famous Movie Themes");
+  SmartPtrToConst<CD> pConstCD = pCD;  // fine
+  ```
 
 Item 29: Reference counting
 
+- Reference counting is most useful for improving efficiency under the following conditions.
+
+  - Relatively few values are shared by relatively many objects.
+  - Object values are expensive to create or destroy, or they use lots of memory.
+
+```c++
+// base class for reference-counted objects
+class RCObject {
+ public:
+  void addReference();
+  void removeReference();
+  void markUnshareable();
+  bool isShareable() const;
+  bool isShared() const;
+
+ protected:
+  RCObject();
+  RCObject(const RCObject& rhs);
+  RCObject& operator=(const RCObject& rhs);
+  virtual ~RCObject();
+
+ private:
+  int refCount;
+  bool shareable;
+};
+
+RCObject::RCObject() : refCount(0), shareable(true) {}
+
+RCObject::RCObject(const RCObject&) : refCount(0), shareable(true) {}
+
+RCObject& RCObject::operator=(const RCObject&) { return *this; }
+
+RCObject::~RCObject() {}
+
+void RCObject::addReference() { ++refCount; }
+
+void RCObject::removeReference() {
+  if (--refCount == 0) {
+    delete this;
+  }
+}
+
+void RCObject::markUnshareable() { shareable = false; }
+
+bool RCObject::isShareable() const { return shareable; }
+
+bool RCObject::isShared() const { return refCount > 1; }
+```
+
+```c++
+// template class for smart pointers-to-T objects
+// T must inherit from RCObject
+template <class T>
+class RCPtr {
+ public:
+  RCPtr(T* realPtr = 0);
+  RCPtr(const RCPtr& rhs);
+  ~RCPtr();
+  RCPtr& operator=(const RCPtr& rhs);
+  T* operator->() const;
+  T& operator*() const;
+
+ private:
+  T* pointee;
+  void init();
+};
+
+template <class T>
+void RCPtr<T>::init() {
+  if (pointee == 0) {
+    return;
+  }
+  if (pointee->isShareable() == false) {
+    pointee = new T(*pointee);
+  }
+  pointee->addReference();
+}
+
+template <class T>
+RCPtr<T>::RCPtr(T* realPtr) : pointee(realPtr) {
+  init();
+}
+
+template <class T>
+RCPtr<T>::RCPtr(const RCPtr& rhs) : pointee(rhs.pointee) {
+  init();
+}
+
+template <class T>
+RCPtr<T>::~RCPtr() {
+  if (pointee) {
+    pointee->removeReference();
+  }
+}
+
+template <class T>
+RCPtr<T>& RCPtr<T>::operator=(const RCPtr& rhs) {
+  if (pointee != rhs.pointee) {
+    if (pointee) {
+      pointee->removeReference();
+    }
+    pointee = rhs.pointee;
+    init();
+  }
+  return *this;
+}
+
+template <class T>
+T* RCPtr<T>::operator->() const {
+  return pointee;
+}
+
+template <class T>
+T& RCPtr<T>::operator*() const {
+  return *pointee;
+}
+```
+
+```c++
+// class to be used by application developers
+class String {
+ public:
+  String(const char* value = "");
+  char operator[](int index) const;
+  char& operator[](int index);
+
+ private:
+  struct StringValue : public RCObject {
+    char* data;
+    StringValue(const char* initValue);
+    StringValue(const StringValue& rhs);
+    void init(const char* initValue);
+    ~StringValue();
+    friend class RCPtr<StringValue>;
+  };
+  RCPtr<StringValue> value;
+};
+
+void String::StringValue::init(const char* initValue) {
+  data = new char[strlen(initValue) + 1];
+  strcpy(data, initValue);
+}
+
+String::StringValue::StringValue(const char* initValue) { init(initValue); }
+
+String::StringValue::StringValue(const StringValue& rhs) { init(rhs.data); }
+
+String::StringValue::~StringValue() { delete[] data; }
+
+String::String(const char* initValue) : value(new StringValue(initValue)) {}
+
+char String::operator[](int index) const { return value->data[index]; }
+
+char& String::operator[](int index) {
+  if (value->isShared()) {
+    value = new StringValue(value->data);
+  }
+  value->markUnshareable();
+  return value->data[index];
+}
+```
+
 Item 30: Proxy classes
 
+- Objects that stand for other objects are often called proxy objects, and the classes that give rise to proxy objects are often called proxy classes.
+
+- Taking the address of a proxy class yields a different type of pointer than does taking the address of a real object.
+
+  ```c++
+  class String {
+   public:
+    class CharProxy {
+     public:
+      CharProxy(String& str, int index);           // creation
+      CharProxy& operator=(const CharProxy& rhs);  // lvalues uses
+      CharProxy& operator=(char c);                // lvalues uses
+      operator char() const;                       // rvalue uses
+  
+     private:
+      String& theString;
+      int charIndex;
+    };
+  
+    const CharProxy operator[](int index) const;  // for const Strings
+    CharProxy operator[](int index);              // for non-const Strings
+    // ...
+  
+    friend class CharProxy;
+  
+   private:
+    RCPtr<StringValue> value;
+  };
+  
+  const String::CharProxy String::operator[](int index) const {
+    return CharProxy(const_cast<String&>(*this), index);
+  }
+  
+  String::CharProxy String::operator[](int index) { return CharProxy(*this, index); }
+  
+  String::CharProxy::CharProxy(String& str, int index) : theString(str), charIndex(index) {}
+  
+  // Because this function returns a character by value, and because C++ limits the use of such
+  // by-value returns to rvalue contexts only, this conversion function can be used only in places
+  // where an rvalue is legal.
+  String::CharProxy::operator char() const { return theString.value->data[charIndex]; }
+  
+  // Move the code implementing a write into CharProxy's assignment operators, and that allows us to
+  // avoid paying for a write when the non-const operator[] is used only in an rvalue context.
+  String::CharProxy& String::CharProxy::operator=(const CharProxy& rhs) {
+    if (theString.value->isShared()) {
+      theString.value = new StringValue(theString.value->data);
+    }
+    theString.value->data[charIndex] = rhs.theString.value->data[rhs.charIndex];
+    return *this;
+  }
+  
+  String::CharProxy& String::CharProxy::operator=(char c) {
+    if (theString.value->isShared()) {
+      theString.value = new StringValue(theString.value->data);
+    }
+    theString.value->data[charIndex] = c;
+    return *this;
+  }
+  ```
+
 Item 31: Making functions virtual with respect to more than one object
+
+- The most common approach to double-dispatching is via chains of `if-then-else`s.
+
+- To minimize the risks inherent in an RTTI approach, the strategy is to implement double-dispatching as two single dispatches.
+
+- Use a vtbl to eliminate the need for compilers to perform chains of `if-then-else`-like computations, and it allows compilers to generate the same code at all virtual function call sites.
+
+- The recompilation problem would go away if our associative array contained pointers to non-member functions.
+
+  - Everything in an unnamed namespace is private to the current translation unit (essentially the current file) -- it's just like the functions were declared `static` at file scope.
+
+  ```C++
+  // Use virtual functions and RTTI
+  class GameObject {
+   public:
+    virtual void collide(GameObject& otherObject) = 0;
+    // ...
+  };
+  
+  class SpaceShip : public GameObject {
+   public:
+    virtual void collide(GameObject& otherObject);
+    // ...
+  };
+  
+  class SpaceStation : public GameObject {
+   public:
+    virtual void collide(GameObject& otherObject);
+    // ...
+  };
+  
+  class Asteroid : public GameObject {
+   public:
+    virtual void collide(GameObject& otherObject);
+    // ...
+  };
+  
+  class CollisionWithUnknownObject {
+   public:
+    CollisionWithUnknownObject(GameObject& whatWeHit);
+    // ...
+  };
+  
+  void SpaceShip::collide(GameObject& otherObject) {
+    const type_info& objectType = typeid(otherObject);
+    if (objectType == typeid(SpaceShip)) {
+      SpaceShip& ss = static_cast<SpaceShip&>(otherObject);
+      // process a SpaceShip-SpaceShip collision
+    } else if (objectType == typeid(SpaceStation)) {
+      SpaceStation& ss = static_cast<SpaceStation&>(otherObject);
+      // process a SpaceShip-SpaceStation collision
+    } else if (objectType == typeid(Asteroid)) {
+      Asteroid& ss = static_cast<Asteroid&>(otherObject);
+      // process a SpaceShip-Asteroid collision
+    } else {
+      throw CollisionWithUnknownObject(otherObject);
+    }
+  }
+  ```
+
+  ```c++
+  // Use virtual functions only
+  class SpaceShip;
+  class SpaceStation;
+  class Asteroid;
+  
+  class GameObject {
+   public:
+    virtual void collide(GameObject& otherObject) = 0;
+    virtual void collide(SpaceShip& otherObject) = 0;
+    virtual void collide(SpaceStation& otherObject) = 0;
+    virtual void collide(Asteroid& otherObject) = 0;
+    // ...
+  };
+  
+  class SpaceShip : public GameObject {
+   public:
+    virtual void collide(GameObject& otherObject);
+    virtual void collide(SpaceShip& otherObject);
+    virtual void collide(SpaceStation& otherObject);
+    virtual void collide(Asteroid& otherObject);
+    // ...
+  };
+  
+  // Compilers figure out which of a set of functions to call on the basis of the static types of the
+  // arguments passed to the function.
+  void SpaceShip::collide(GameObject& otherObject) { otherObject.collide(*this); }
+  ```
+
+  ```c++
+  // Emulate virtual function tables
+  class GameObject {
+   public:
+    virtual void collide(GameObject& otherObject) = 0;
+    // ...
+  };
+  
+  class SpaceShip : public GameObject {
+   public:
+    virtual void collide(GameObject& otherObject);
+    virtual void hitSpaceShip(GameObject& otherObject);
+    virtual void hitSpaceStation(GameObject& otherObject);
+    virtual void hitAsteroid(GameObject& otherObject);
+    // ...
+  
+   private:
+    typedef void (SpaceShip::*HitFunctionPtr)(GameObject&);
+    typedef std::map<std::string, HitFunctionPtr> HitMap;
+    HitFunctionPtr lookup(const GameObject& whatWeHit) const;
+    static HitMap* initializeCollisionMap();
+    // ...
+  };
+  
+  void SpaceShip::hitSpaceShip(GameObject& spaceShip) {
+    SpaceShip& otherShip = dynamic_cast<SpaceShip&>(spaceShip);
+    // ...
+  }
+  
+  void SpaceShip::hitSpaceShip(GameObject& spaceShip) {
+    SpaceShip& otherShip = dynamic_cast<SpaceShip&>(spaceShip);
+    // ...
+  }
+  
+  void SpaceShip::collide(GameObject& otherObject) {
+    HitFunctionPtr hfp = lookup(otherObject);
+    if (hfp) {
+      (this->*hfp)(otherObject);
+    } else {
+      throw CollisionWithUnknownObject(otherObject);
+    }
+  }
+  
+  SpaceShip::HitFunctionPtr SpaceShip::lookup(const GameObject& whatWeHit) const {
+    static std::unique_ptr<HitMap> collisionMap(initializeCollisionMap());
+    HitMap::iterator mapEntry = collisionMap->find(typeid(whatWeHit).name());
+    if (mapEntry == collisionMap->end()) {
+      return 0;
+    }
+    return (*mapEntry).second;
+  }
+  
+  SpaceShip::HitMap* SpaceShip::initializeCollisionMap() {
+    HitMap* phm = new HitMap;
+    (*phm)["SpaceShip"] = &hitSpaceShip;
+    (*phm)["SpaceStation"] = &hitSpaceStation;
+    (*phm)["Asteroid"] = &hitAsteroid;
+    return phm;
+  }
+  ```
 
 ## CH6: Miscellany
 
