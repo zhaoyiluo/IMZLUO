@@ -17,7 +17,7 @@ featuredImagePreview: ""
 
 ## CH1: Basics
 
-Item 1: Distinguish between pointers and references
+**Item 1: Distinguish between pointers and references**
 
 - A reference must always refer to some object. The fact that there is no such thing as a null reference implies that it can be more efficient to use references than to use pointers.
 
@@ -42,7 +42,7 @@ Item 1: Distinguish between pointers and references
   }
   ```
 
-Item 2: Prefer C++-style casts
+**Item 2: Prefer C++-style casts**
 
 - `static_cast` has basically the same power and meaning as the general-purpose C-style cast.
 
@@ -81,7 +81,7 @@ Item 2: Prefer C++-style casts
   int *c = reinterpret_cast<int *>(b);    // a and c contain the same value
   ```
 
-Item 3: Never treat arrays polymorphically
+**Item 3: Never treat arrays polymorphically**
 
 - The language specification says the result of deleting an array of derived class objects through a base class pointer is undefined.
 
@@ -105,7 +105,7 @@ Item 3: Never treat arrays polymorphically
   printBSTArray(std::cout, bBSTArray, 10);
   ```
 
-Item 4: Avoid gratuitous default constructors
+**Item 4: Avoid gratuitous default constructors**
 
 - If a class lacks a default constructor, its use may be problematic in three contexts.
 
@@ -154,7 +154,7 @@ Item 4: Avoid gratuitous default constructors
 
 ## CH2: Operators
 
-Item 5: Be wary of user-defined conversion functions
+**Item 5: Be wary of user-defined conversion functions**
 
 - Two kinds of functions allow compilers to perform implicit type conversions.
 
@@ -208,7 +208,7 @@ Item 5: Be wary of user-defined conversion functions
   };
   ```
 
-Item 6: Distinguish between prefix and postfix forms of increment and decrement operators
+**Item 6: Distinguish between prefix and postfix forms of increment and decrement operators**
 
 - The prefix forms return a reference, while the post forms return a `const` object.
 
@@ -238,14 +238,14 @@ Item 6: Distinguish between prefix and postfix forms of increment and decrement 
   }
   ```
 
-Item 7: Never overload `&&`, `||`, or `,`
+**Item 7: Never overload `&&`, `||`, or `,`**
 
 - C++ employs short-circuit evaluation of boolean expressions, but function call semantics differ from short-circuit semantics in two crucial ways.
   - When a function call is made, all parameters must be evaluated, so when calling the function `operators&&` and `operator||`, both parameters are evaluated.
   - The language specification leaves undefined the order of evaluation of parameters to a function call, so there is no way of knowing whether `expression1` or `expression2` well be evaluated first. 
 - An expression containing a comma is evaluated by first evaluating the part of the expression to the left of the comma, then evaluating the expression to the right of the comma; the result of the overall comma expression is the value of the expression on the right.
 
-Item 8: Understand the different meanings of `new` and `delete`
+**Item 8: Understand the different meanings of `new` and `delete`**
 
 - The `new` you are using is the `new` operator.
 
@@ -283,11 +283,11 @@ Item 8: Understand the different meanings of `new` and `delete`
 
 ## CH3: Exceptions
 
-Item 9: Use destructors to prevent resource leaks
+**Item 9: Use destructors to prevent resource leaks**
 
 - By adhering to the rule that resources should be encapsulated inside objects, you can usually avoid resource leaks in the presence of exceptions.
 
-Item 10: Prevent resource leaks in constructors
+**Item 10: Prevent resource leaks in constructors**
 
 - C++ destroys only fully constructed objects, and an object isn't fully constructed until its constructor has return to completion.
 
@@ -312,7 +312,7 @@ Item 10: Prevent resource leaks in constructors
   }
   ```
 
-Item 11: Prevent exceptions from leaving destructors
+**Item 11: Prevent exceptions from leaving destructors**
 
 - You must write your destructors under the conservative assumption that an exception is active, because if an exception is thrown while another is active, C++ calls the `terminate` function.
 
@@ -342,7 +342,7 @@ Item 11: Prevent exceptions from leaving destructors
   }
   ```
 
-Item 12: Understand how throwing an exception differs from passing a parameter or calling a virtual function
+**Item 12: Understand how throwing an exception differs from passing a parameter or calling a virtual function**
 
 - Exception objects are always copied; when caught by value, they are copied twice. Objects passed to function parameters need not be copied at all.
 
@@ -399,7 +399,7 @@ Item 12: Understand how throwing an exception differs from passing a parameter o
   }
   ```
 
-Item 13: Catch exception specifications judiciously
+**Item 13: Catch exception specifications judiciously**
 
 - If you try to catch exceptions by pointer, you must define exception objects in a way that guarantees the objects exist after control leaves the functions throwing pointers to them. Global and static objects work fine, but it's easy for you to forget the constraint.
   
@@ -409,7 +409,7 @@ Item 13: Catch exception specifications judiciously
 
 - If you try to catch exceptions by reference, you sidestep questions about object deletion that leave you demand if you do and damned if you don't; you avoid slicing exception objects; you retain the ability to catch standard exceptions; and you limit the number of times exception objects need to be copied.
 
-Item 14: Use exception specifications judiciously
+**Item 14: Use exception specifications judiciously**
 
 - The default behavior for `unexpected` is to call `terminate`, and the default behavior for `terminate` is to call `abort`, so the default behavior for a program with a violated exception specification is to halt.
 
@@ -471,19 +471,19 @@ Item 14: Use exception specifications judiciously
   }
   ```
 
-Item 15: Understand the costs of exception handling
+**Item 15: Understand the costs of exception handling**
 
 - To minimize your exception-related costs, compile without support for exceptions when that is feasible; limit your use of `try` blocks and exception specifications to those locations where you honestly need them; and throw exceptions only under conditions that are truly exceptional.
 
 ## CH4: Efficiency
 
-Item 16: Remember the 80-20 rule
+**Item 16: Remember the 80-20 rule**
 
 - The overall performance of your software is almost always determined by a small part of its constituent code.
 
 - The best way to guard against these kinds of pathological results is to profile your software using as many data sets as possible.
 
-Item 17: Consider using lazy evaluation
+**Item 17: Consider using lazy evaluation**
 
 - When you employ lazy evaluation, you write your classes in such a way that they defer computations until the results of those computations are required.
 
@@ -549,14 +549,14 @@ Item 17: Consider using lazy evaluation
   m3 = m4 * m1;  // no need to actually calculate the result of m1 + m2 previously
   ```
 
-Item 18: Amortize the cost of expected computations
+**Item 18: Amortize the cost of expected computations**
 
 - Over-eager evaluation is a technique for improving the efficiency of programs when you must support operations whose results are almost always needed or whose results are often needed more than once.
 
   - Caching values that have already been computed and are likely to be needed again.
   - Prefetching demands a place to put the things that are prefetched, but it reduces the time need to access those things.
 
-Item 19: Understand the origin of temporary objects
+**Item 19: Understand the origin of temporary objects**
 
 - True temporary objects in C++ are invisible -- they don't appear in your source code. They arise whenever a non-heap object is created but no named.
 
@@ -582,7 +582,7 @@ Item 19: Understand the origin of temporary objects
     const Number operator+(const Number& lhs, const Number& rhs);
     ```
 
-Item 20: Facilitate the return value optimization
+**Item 20: Facilitate the return value optimization**
 
 - It is frequently possible to write functions that return objects in such a way that compilers can eliminate the cost of the temporaries. The trick is to return constructor arguments instead of objects.
 
@@ -618,7 +618,7 @@ Item 20: Facilitate the return value optimization
   }
   ```
 
-Item 21: Overload to avoid implicit type conversions
+**Item 21: Overload to avoid implicit type conversions**
 
 - By declaring several functions, each with a different set of parameter types to eliminate the need for type conversions.
 
@@ -640,7 +640,7 @@ Item 21: Overload to avoid implicit type conversions
   const UPInt operator+(int lhs, int rhs);
   ```
 
-Item 22: Consider using `op=` instead of strand-alone `op`
+**Item 22: Consider using `op=` instead of strand-alone `op`**
 
 - A good way to ensure that the natural relationship between the assignment version of an operator (e.g., `operator+=`) and the stand-alone version (e.g., `operator+`) exists is to implement the latter in terms of the former.
 
@@ -671,11 +671,11 @@ Item 22: Consider using `op=` instead of strand-alone `op`
   }
   ```
 
-Item 23: Consider alternative libraries
+**Item 23: Consider alternative libraries**
 
 - Different libraries embody different design decisions regarding efficiency, extensibility, portability, type safety, and other issues. You can sometimes significantly improve the efficiency of your software by switching to libraries whose designers gave more weight to performance considerations than to other factors.
 
-Item 24: Understand the costs of virtual functions, multiple inheritance, virtual base classes, and RTTI
+**Item 24: Understand the costs of virtual functions, multiple inheritance, virtual base classes, and RTTI**
 
 | Feature              | Increases <br />Size of Objects | Increases<br />Per-Class Data | Reduces<br />Inlining |
 | -------------------- | ------------------------------- | ----------------------------- | --------------------- |
@@ -686,7 +686,7 @@ Item 24: Understand the costs of virtual functions, multiple inheritance, virtua
 
 ## CH5: Techniques
 
-Item 25: Virtualizing constructors and non-member functions
+**Item 25: Virtualizing constructors and non-member functions**
 
 - A virtual constructor is a function that creates different types of objects depending on the input it is given.
 
@@ -738,7 +738,7 @@ Item 25: Virtualizing constructors and non-member functions
   inline std::ostream& operator<<(std::ostream& s, const NLComponent& c) { return c.print(s); }
   ```
 
-Item 26: Limiting the number of objects of a class
+**Item 26: Limiting the number of objects of a class**
 
 - The easiest way to prevent objects of a particular class from being created is to declare the constructors of that class private.
 
@@ -892,7 +892,7 @@ Item 26: Limiting the number of objects of a class
   };
   ```
 
-Item 27: Requiring or prohibiting heap-based objects
+**Item 27: Requiring or prohibiting heap-based objects**
 
 - Restricting access to a class's destructor or its constructors also prevents both inheritance and containment.
 
@@ -1012,7 +1012,7 @@ Item 27: Requiring or prohibiting heap-based objects
                                // not UPNumber::operator new
   ```
 
-Item 28: Smart pointers
+**Item 28: Smart pointers**
 
 - Passing `auto_ptr`s by value, then, is something to be done only if you're sure you want to transfer ownership of an object to a (transient) function parameter.
 
@@ -1088,7 +1088,7 @@ Item 28: Smart pointers
   SmartPtrToConst<CD> pConstCD = pCD;  // fine
   ```
 
-Item 29: Reference counting
+**Item 29: Reference counting**
 
 - Reference counting is most useful for improving efficiency under the following conditions.
 
@@ -1252,7 +1252,7 @@ Item 29: Reference counting
   }
   ```
 
-Item 30: Proxy classes
+**Item 30: Proxy classes**
 
 - Objects that stand for other objects are often called proxy objects, and the classes that give rise to proxy objects are often called proxy classes.
 
@@ -1315,7 +1315,7 @@ Item 30: Proxy classes
   }
   ```
 
-Item 31: Making functions virtual with respect to more than one object
+**Item 31: Making functions virtual with respect to more than one object**
 
 - The most common approach to double-dispatching is via chains of `if-then-else`s.
 
@@ -1468,7 +1468,7 @@ Item 31: Making functions virtual with respect to more than one object
 
 ## CH6: Miscellany
 
-Item 32: Program in the future tense
+**Item 32: Program in the future tense**
 
 - Provide complete classes, even if some parts aren't currently used. When new demands are made on your classes, you're less likely to have to go back and modify them.
 
@@ -1476,7 +1476,7 @@ Item 32: Program in the future tense
 
 - If there is no great penalty for generalizing your code, generalize it.
 
-Item 33: Make non-leaf classes abstract
+**Item 33: Make non-leaf classes abstract**
 
 - Non-leaf classes should be abstract. Adherence to it will yield dividends in the form of increased reliability, robustness, comprehensibility, and extensibility throughout your software.
 
@@ -1539,7 +1539,7 @@ Item 33: Make non-leaf classes abstract
   };
   ```
 
-Item 34: Understand how to combine C++ and C in the same program
+**Item 34: Understand how to combine C++ and C in the same program**
 
 - Make sure the C++ and C compilers produce compatible object files.
 
@@ -1565,7 +1565,7 @@ Item 34: Understand how to combine C++ and C in the same program
   #endif
   ```
 
-Item 35: Familiarize yourself with the language standard
+**Item 35: Familiarize yourself with the language standard**
 
 - New features have been added.
 
