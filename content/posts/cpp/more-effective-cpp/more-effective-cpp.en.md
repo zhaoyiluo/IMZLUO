@@ -1470,8 +1470,123 @@ Item 31: Making functions virtual with respect to more than one object
 
 Item 32: Program in the future tense
 
+- Provide complete classes, even if some parts aren't currently used. When new demands are made on your classes, you're less likely to have to go back and modify them.
+
+- Design your interfaces to facilitate common operations and prevent common errors. Make the classes easy to use correctly, hard to use incorrectly.
+
+- If there is no great penalty for generalizing your code, generalize it.
+
 Item 33: Make non-leaf classes abstract
+
+- Non-leaf classes should be abstract. Adherence to it will yield dividends in the form of increased reliability, robustness, comprehensibility, and extensibility throughout your software.
+
+  ```c++
+  // Wrong: partial assignment
+  class Animal {
+   public:
+    Animal& operator=(const Animal& rhs);
+    // ...
+  };
+  
+  class Lizard : public Animal {
+   public:
+    Lizard& operator=(const Lizard& rhs);
+    // ...
+  };
+  
+  class Chicken : public Animal {
+   public:
+    Chicken& operator=(const Chicken& rhs);
+    // ...
+  };
+  
+  Lizard liz1;
+  Lizard liz2;
+  Animal* pAnimal1 = &liz1;
+  Animal* pAnimal2 = &liz2;
+  // Only the Animal part of liz1 will be modified
+  *pAnimal1 = *pAnimal2;
+  ```
+
+  ```c++
+  // The goal is to identify useful abstractions and to force them - and only them - into existence as
+  // abstract classes
+  class AbstractAnimal {
+   protected:
+    AbstractAnimal& operator=(const AbstractAnimal& rhs);
+  
+   public:
+    virtual ~AbstractAnimal() = 0;
+    // ...
+  };
+  
+  class Animal : public AbstractAnimal {
+   public:
+    Animal& operator=(const Animal& rhs);
+    // ...
+  };
+  
+  class Lizard : public AbstractAnimal {
+   public:
+    Lizard& operator=(const Lizard& rhs);
+    // ...
+  };
+  
+  class Chicken : public AbstractAnimal {
+   public:
+    Chicken& operator=(const Chicken& rhs);
+    // ...
+  };
+  ```
 
 Item 34: Understand how to combine C++ and C in the same program
 
+- Make sure the C++ and C compilers produce compatible object files.
+
+- Declare functions to be used by both languages `extern "C"`.
+
+- If at all possible, write `main` in C++.
+
+- Always use `delete` with memory from `new`; always use `free` with memory from `malloc`.
+
+- Limit what you pass between the two languages to data structures that compile under C; the C++ version of structs may contain non-virtual member functions.
+
+  ```C++
+  // Name mangling
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  void drawLine(int x1, int y1, int x2, int y2);
+  void twiddleBits(unsigned char bits);
+  void simulate(int iterations);
+  // ...
+  #ifdef __cplusplus
+  }
+  #endif
+  ```
+
 Item 35: Familiarize yourself with the language standard
+
+- New features have been added.
+
+- Templates have been extended.
+
+- Exception handling has been refined.
+
+- Memory allocation routines have been modified.
+
+- New casting forms have been added.
+
+- Language rules have been refined.
+
+- Support for the standard C library.
+
+- Support for strings.
+
+- Support for localization.
+
+- Support for I/O.
+
+- Support for numeric applications.
+
+- Support for general-purpose containers and algorithms.
