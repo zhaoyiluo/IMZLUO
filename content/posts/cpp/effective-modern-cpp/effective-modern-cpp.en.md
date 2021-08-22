@@ -1,5 +1,5 @@
 ---
-title: "[NOTE] Effective Modern Cpp"
+title: "[NOTE] Effective Modern C++"
 subtitle: "42 Specific Ways to Improve Your Use of C++11 and C++14"
 date: 2021-08-22T22:44:11+08:00
 lastmod: 2021-08-22T22:44:11+08:00
