@@ -1,5 +1,5 @@
 ---
-title: "[NOTE] More Effective Cpp, First Edition"
+title: "[NOTE] More Effective Cpp"
 subtitle: "35 New Ways to Improve Your Programs and Designs"
 date: 2021-08-01T00:13:13+08:00
 lastmod: 2021-08-01T00:13:13+08:00
