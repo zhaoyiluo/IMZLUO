@@ -19,11 +19,74 @@ featuredImagePreview: ""
 
 **Item 1: Understand template type deduction.**
 
+- During template type deduction, arguments that are references are treated as non-references, i.e., their reference-ness is ignored.
+
+- When deducing types for universal reference parameters, lvalue arguments get special treatment.
+
+- When deducing types for by-value parameters, `const` and/or `volatile` arguments are treated as non-`const` and non-`volatile`.
+
+- During template type deduction, arguments that are array or function names decay to pointers, unless they're used to initialize references.
+
 **Item 2: Understand `auto` type deduction.**
+
+- `auto` type deduction is usually the same as template type deduction, but `auto` type deduction assumes that a braced initializer represents a `std::initializer_list`, and template type deduction doesn't.
+
+- `auto` in a function return type or a lambda parameter implies template type deduction, not `auto` type deduction.
+
+  ```c++
+  // wrong usage 1
+  auto createInitList() { return {1, 2, 3}; }
+  
+  // wrong usage 2
+  std::vector<int> v;
+  auto resetV = [&v](const auto& newValue) { v = newValue; };
+  resetV({1, 2, 3});
+  
+  // right usage
+  template <typename T>
+  void f(std::initializer_list<T> initList);
+  f({11, 23, 9});
+  ```
 
 **Item 3: Understand `decltype`.**
 
+- `decltype` almost always yields the type of a variable or expression without any modifications.
+
+- For lvalue expressions of type `T` other than names, `decltype` always reports a type of `T&`.
+
+- C++14 supports `decltype(auto)`, which, like `auto`, deduces a type from its initializer, but it performs the type deduction using the `decltype` rules.
+
+  ```c++
+  // C++14 version
+  template <typename Container, typename Index>
+  decltype(auto) authAndAccess(Container&& c, Index i) {
+    return std::forward<Container>(c)[i];  // apply std::forward to universal references
+  }
+  
+  // C++11 version
+  template <typename Container, typename Index>
+  auto authAndAccess(Container&& c, Index i) -> decltype(std::forward<Container>(c)[i]) {
+    return std::forward<Container>(c)[i];  // apply std::forward to universal references
+  }
+  
+  decltype(auto) f1() {
+    int x = 0;
+    return x;  // decltype(x) is int, so f1 returns int
+  }
+  
+  decltype(auto) f1() {
+    int x = 0;
+    return (x);  // decltype((x)) is int&, so f2 returns int&
+  }
+  ```
+
 **Item 4: Know how to view deduced types.**
+
+- Deduced types can often be seen using IDE editors, compiler error messages, and the Boost TypeIndex library.
+
+- The results of some tools may be neither helpful nor accurate, so an understanding of C++'s type deduction rules remains essential.
+
+  - The specification for std::type_info::name mandates that the type be treated as if it had been passed to a template function as a by-value parameter.
 
 ## CH2: `auto`
 
