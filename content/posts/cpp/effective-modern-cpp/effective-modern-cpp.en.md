@@ -86,7 +86,7 @@ featuredImagePreview: ""
 
 - The results of some tools may be neither helpful nor accurate, so an understanding of C++'s type deduction rules remains essential.
 
-  - The specification for std::type_info::name mandates that the type be treated as if it had been passed to a template function as a by-value parameter.
+  - The specification for `std::type_info::name` mandates that the type be treated as if it had been passed to a template function as a by-value parameter.
 
 ## CH2: `auto`
 
