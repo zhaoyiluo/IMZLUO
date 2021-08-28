@@ -33,20 +33,20 @@ featuredImagePreview: ""
 
 - `auto` in a function return type or a lambda parameter implies template type deduction, not `auto` type deduction.
 
-  ```c++
-  // wrong usage 1
-  auto createInitList() { return {1, 2, 3}; }
-  
-  // wrong usage 2
-  std::vector<int> v;
-  auto resetV = [&v](const auto& newValue) { v = newValue; };
-  resetV({1, 2, 3});
-  
-  // right usage
-  template <typename T>
-  void f(std::initializer_list<T> initList);
-  f({11, 23, 9});
-  ```
+```c++
+// wrong usage 1
+auto createInitList() { return {1, 2, 3}; }
+
+// wrong usage 2
+std::vector<int> v;
+auto resetV = [&v](const auto& newValue) { v = newValue; };
+resetV({1, 2, 3});
+
+// right usage
+template <typename T>
+void f(std::initializer_list<T> initList);
+f({11, 23, 9});
+```
 
 **Item 3: Understand `decltype`.**
 
@@ -56,29 +56,29 @@ featuredImagePreview: ""
 
 - C++14 supports `decltype(auto)`, which, like `auto`, deduces a type from its initializer, but it performs the type deduction using the `decltype` rules.
 
-  ```c++
-  // C++14 version
-  template <typename Container, typename Index>
-  decltype(auto) authAndAccess(Container&& c, Index i) {
-    return std::forward<Container>(c)[i];  // apply std::forward to universal references
-  }
-  
-  // C++11 version
-  template <typename Container, typename Index>
-  auto authAndAccess(Container&& c, Index i) -> decltype(std::forward<Container>(c)[i]) {
-    return std::forward<Container>(c)[i];  // apply std::forward to universal references
-  }
-  
-  decltype(auto) f1() {
-    int x = 0;
-    return x;  // decltype(x) is int, so f1 returns int
-  }
-  
-  decltype(auto) f1() {
-    int x = 0;
-    return (x);  // decltype((x)) is int&, so f2 returns int&
-  }
-  ```
+```c++
+// C++14 version
+template <typename Container, typename Index>
+decltype(auto) authAndAccess(Container&& c, Index i) {
+  return std::forward<Container>(c)[i];  // apply std::forward to universal references
+}
+
+// C++11 version
+template <typename Container, typename Index>
+auto authAndAccess(Container&& c, Index i) -> decltype(std::forward<Container>(c)[i]) {
+  return std::forward<Container>(c)[i];  // apply std::forward to universal references
+}
+
+decltype(auto) f1() {
+  int x = 0;
+  return x;  // decltype(x) is int, so f1 returns int
+}
+
+decltype(auto) f1() {
+  int x = 0;
+  return (x);  // decltype((x)) is int&, so f2 returns int&
+}
+```
 
 **Item 4: Know how to view deduced types.**
 
@@ -92,7 +92,36 @@ featuredImagePreview: ""
 
 **Item 5: Prefer `auto` to explicitly type declarations.**
 
+- `auto` variables must be initialized, are generally immune to type mismatches that can lead to portability or efficiency problems, can ease the process of refactoring, and typically require less typing than variables with explicitly specified types.
+
+- `auto`-typed variables are subject to the pitfalls described in Items 2 and 6.
+
 **Item 6: Use the explicitly typed initializer idiom when `auto` deduces undesired types.**
+
+- "Invisible" proxy types can cause `auto` to deduce the "wrong" type for an initializing expression.
+
+- The explicitly typed initializer idiom forces `auto` to deduce the type you want it to have.
+
+```c++
+class Widget;
+std::vector<bool> features(const Widget& w);
+void processWidget(Widget& w, bool priority);
+
+Widget w;
+
+// undefined behavior
+// the call to features returns a temporary std::vector<bool> object and operator[] returns
+// std::vector<bool>::reference object, which contains a pointer to a word plus the offset
+// corresponding to bit 5; highPriority is a copy of the temporary reference object and also
+// contains a pointer to a word in the above temporary reference object; at the end of the
+// statement, this pointer becomes a dangling pointer
+auto highPriority = features(w)[5];
+processWidget(w, highPriority);
+
+// the explicitly typed initializer idiom
+auto highPriority = static_cast<bool>(features(w)[5]);
+processWidget(w, highPriority);
+```
 
 ## CH3: Moving to Modern C++
 
