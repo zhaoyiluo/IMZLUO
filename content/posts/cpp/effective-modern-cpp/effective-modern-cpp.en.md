@@ -127,25 +127,277 @@ processWidget(w, highPriority);
 
 **Item 7: Distinguish between `()` and `{}` when creating objects.**
 
+- Braced initialization is the most widely usable initialization syntax, it prevents narrowing conversions, and it's immune to C++'s most vexing parse.
+
+- During constructor overload resolution, braced initializers are matched to `std::initializer_list` parameters if at all possible, even if other constructors offer seemingly better matches.
+
+- An example of where the choice between parentheses and braces can make a significant difference is creating a `std::vector<numeric type>` with two arguments.
+
+- Choosing between parentheses and braces for object creation inside templates can be challenging.
+
+```c++
+// uncopyable objects may be initialized using braces or parentheses, but not using "="
+std::atomic<int> ai1{0};   // fine
+std::atomic<int> ai2(0);   // fine
+std::atomic<int> ai3 = 0;  // error!
+
+// prohibit implicit narrowing conversions among built-in types
+double x, y, z;
+int sum1{x + y + z};  // error!
+
+// not possible to know which should be used if you're a template author
+template <typename T, typename... TS>
+void doSomeWork(Ts&&... params) {
+  // create local T object from params ...
+}
+
+T localObject(std::forward<Ts>(params)...);  // using parens
+T localObject{std::forward<Ts>(params)...};  // using braces
+
+std::vector<int> v;
+doSomeWork<std::vector<int>>(10, 20);
+```
+
 **Item 8: Prefer `nullptr` to `0` and `NULL`.**
+
+- Prefer `nullptr` to `0` and `NULL`.
+
+- Avoid overloading on integral and pointer types.
+
+```c++
+class Widget;
+std::mutex f1m, f2m, f3m;
+
+int f1(std::shared_ptr<Widget> spw);
+int f2(std::unique_ptr<Widget> upw);
+bool f3(Widget* pw);
+
+template <typename FuncType, typename MuxType, typename PtrType>
+decltype(auto) lockAndCall(FuncType func, MuxType& mutex, PtrType ptr) {
+  using MuxGuard = std::lock_guard(MuxType);
+  MuxGuard g(mutex);
+  return func(ptr);
+}
+
+auto result1 = lockAndCall(f1, f1m, 0);        // error!
+auto result2 = lockAndCall(f2, f2m, NULL);     // error!
+auto result3 = lockAndCall(f3, f3m, nullptr);  // fine
+```
 
 **Item 9: Prefer alias declarations to `typedef`s.**
 
+- `typedef`s don't support templatization, but alias declarations do.
+
+- Alias templates avoid the "`::type`" suffix and, in templates, the "`typename`" prefix often required to refer to `typedef`s.
+
+- C++14 offers alias templates for all the C++11 type traits transformations.
+
+```c++
+class Widget;
+
+// use typedefs
+template <typename T>
+struct MyAllocList {
+  typedef std::list<T, MyAlloc<T>> type;
+};
+MyAllocList<Widget>::type lw;
+
+template <typename T>
+class Widget {
+ private:
+  typename MyAllocList<T>::type list;
+};
+
+// use alias
+template <typename T>
+using MyAllocList = std::list<T, MyAlloc<T>>;
+MyAllocList<Widget> lw;
+
+template <typename T>
+class Widget {
+ private:
+  MyAllocList<T> list;  // no "typename", no "::type"
+};
+```
+
 **Item 10: Prefer scoped `enum`s to unscoped `enum`s.**
+
+- C++98-style `enum`s are now known as unscoped `enum`s.
+
+- Enumerators of scoped `enum`s are visible only within the `enum`. They convert to other types only with a cast.
+
+- Both scoped and unscoped `enum`s support specification of the underlying type. The default underlying type for scoped `enum`s is `int`. Unscoped `enum`s have no default underlying type.
+
+- Scoped `enum`s may always be forward-declared. Unscoped `enum`s may be forward-declared only if their declaration specifies an underlying type.
+
+```c++
+using UserInfo = std::tuple<std::string, std::string, std::size_t>;
+
+// useful for unscoped enums
+enum UserInfoFields { uiName, uiEmail, uiReputation };
+UserInfo uInfo;
+auto val = std::get<uiEmail>(uInfo);
+
+// pay for scoped enums
+enum class UserInfoFields { uiName, uiEmail, uiReputation };
+UserInfo uInfo;
+auto val = std::get<static_cast<std::size_t>(UserInfoFields::uiEmail)>(uInfo);
+
+// std::get is a template and its argument has to be known during compilation
+// the generalized function should be a constexpr function
+template <typename E>
+constexpr typename std::underlying_type<E>::type toUType(E enumerator) noexcept {  // C++11
+  return static_cast<typename std::underlying_type<E>::type>(enumerator);
+}
+template <typename E>
+constexpr auto toUType(E enumerator) noexcept {  // C++14
+  return static_cast<std::underlying_type_t<E>>(enumerator);
+}
+```
 
 **Item 11: Prefer deleted functions to private undefined ones.**
 
+- Prefer deleted functions to private undefined ones.
+
+- Any function may be deleted, including non-member functions and template instantiations.
+
+```c++
+class Widget {
+ public:
+  template <typename T>
+  void processPointer(T* ptr) {
+    // ...
+  }
+
+ private:
+  template <>  // error!
+  void processPointer<void>(void*);
+};
+// template specializations must be written at namespace scope, not class scope
+template <>
+void Widget::processPointer<void>(void*) = delete;  // fine
+```
+
 **Item 12: Declare overriding functions `override`.**
+
+- Declare overriding functions `override`.
+
+- Member function reference qualifiers make it possible to treat lvalue and rvalue objects (`*this`) differently.
 
 **Item 13: Prefer `const_iterator`s to `iterator`s.**
 
+- Prefer `const_iterator`s to `iterator`s.
+
+- In maximally generic code, prefer non-member versions of `begin`, `end`, `rbegin`, etc., over their member function counterparts.
+
+```c++
+// invoking the non-member begin function on a const container yields a const_iterator and that
+// iterator is what this template returns
+template <class C>
+auto cbegin(const C& container) -> decltype(std::begin(container)) {
+  return std::begin(container);
+}
+```
+
 **Item 14: Declare functions `noexcept` if they won't emit exceptions.**
+
+- `noexcept` is part of a function's interface, and that means that callers may depend on it.
+
+- `noexcept` functions are more optimizable than non-`noexcept` functions.
+
+  - Optimizers need not keep the runtime stack in an unwindable state if an exception would propagate out of the function, nor must they ensure that objects in a `noexcept` function are destroyed in the inverse oder of construction should an exception leave the function.
+
+- `noexcept` is particularly valuable for the move operations, `swap`, memory deallocation functions, and destructors.
+
+  - `swap` functions are conditionally `noexcept` and they depend on whether the expressions inside the `noexcept` clauses are `noexcept`.
+  - The only time a destructor is not implicitly `noexcept` is when a data member of the class is of a type that expressly states that its destructor may emit exceptions.
+
+- Most functions are exception-neutral rather than `noexcept`.
 
 **Item 15: Use `constexpr` whenever possible.**
 
+- `constexpr` objects are `const` and are initialized with values known during compilation.
+
+- `constexpr` functions can produce compile-time results when called with arguments whose values are known during compilation.
+
+  - `constexpr` functions are limited to taking and returning literal types.
+  - In C++11, `constexpr` functions may contain no more than a single executable statement: a `return`.
+  - In C++11, all built-in types except `void` qualify, but user-defined types may be literal, too.
+
+- `constexpr` objects and functions may be used in a wider range of contexts than non-`constexpr` objects and functions.
+
+- `constexpr` is part of an object's or function's interface.
+
+```c++
+class Point {
+ public:
+  constexpr Point(double xVal = 0, double yVal = 0) noexcept : x(xVal), y(yVal) {}
+
+  constexpr double xValue() const noexcept { return x; }
+  constexpr double yValue() const noexcept { return y; }
+
+  // C++11
+  void setX(double newX) noexcept { x = newX; }
+  void setY(double newY) noexcept { y = newY; }
+
+  // C++14
+  constexpr void setX(double newX) noexcept { x = newX; }
+  constexpr void setY(double newY) noexcept { y = newY; }
+
+ private:
+  double x, y;
+};
+
+constexpr Point midpoint(const Point& p1, const Point& p2) noexcept {
+  return {(p1.xValue() + p2.xValue()) / 2, (p1.yValue() + p2.yValue()) / 2};
+}
+
+constexpr Point reflection(const Point& p) noexcept {
+  Point result;
+
+  // C++14 required
+  result.setX(-p.xValue());
+  result.setY(-p.yValue());
+
+  return result;
+}
+
+constexpr Point p1(9.4, 27.7);
+constexpr Point p2(28.8, 5.3);
+constexpr auto mid = midpoint(p1, p2);
+constexpr auto reflected = reflection(mid);  // C++14 required
+```
+
 **Item 16: Make `const` member functions thread safe.**
 
+- Make `const` member functions thread safe unless you're certain they'll never be used in a concurrent context.
+
+- Use of `std::atomic` variables may offer better performance than a mutex, but they're suited for manipulation of only a single variable or memory location.
+
 **Item 17: Understand special member function generation.**
+
+- The special member functions are those compilers may generate on their own: default constructor, destructor, copy operations, and move operations.
+
+- Move operations are generated only for classes lacking explicitly declared move operations, copy operations, and a destructor.
+
+- The copy constructor is generated only for classes lacking an explicitly declared copy constructor, and it's deleted if a move operation is declared. The copy assignment operator is generated only for classes lacking an explicitly declared copy assignment operator, and it's deleted if a move operation is declared. Generation of the copy operations in classes with an explicitly declared copy operation or destructor is deprecated.
+
+- Member function templates never suppress generation of special member functions.
+
+```c++
+class Base {
+ public:
+  virtual ~Base() = default;
+
+  Base(Base&&) = default;  // support moving
+  Base& operator=(Base&&) = default;
+
+  Base(const Base&) = default;  // support copying
+  Base& operator=(const Base&) = default;
+
+  // ...
+};
+```
 
 ## CH4: Smart Pointers
 
