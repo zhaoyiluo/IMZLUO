@@ -403,13 +403,192 @@ class Base {
 
 **Item 18: Use `std::unique_ptr` for exclusive-ownership resource management.**
 
+- `std::unique_ptr` is a small, fast, move-only smart pointer for managing resources with exclusive-ownership semantics.
+
+- By default, resource destruction takes place via `delete`, but custom deleters can be specified. Stateful deleters and function pointers as deleters increase the size of `std::unique_ptr` objects.
+
+- Attempting to assign a raw pointer (e.g., from `new`) to `std::unique_ptr` won't compile, because it would constitute an implicit conversion from a raw to a smart pointer. Such implicit conversions can be problematic, so C++11's smart pointers prohibit them.
+
+- Converting a `std::unique_ptr` to a `std::shared_ptr` is easy.
+
 **Item 19: Use `std::shared_ptr` for shared-ownership resource management.**
+
+- `std::shared_ptr`s offer convenience approaching that of garbage collection for the shared lifetime management of arbitrary resources.
+
+- Compared to `std::unique_ptr`, `std::shared_ptr` objects are typically twice as big, incur overhead for control blocks, and require atomic reference count manipulations.
+
+  - `std::make_shared` always creates a control block.
+  - A control block is created when a `std::shared_ptr` is constructed from a unique-ownership pointer.
+  - When a `std::shared_ptr` constructor is called with a raw pointer, it creates a control block.
+
+- Default resource destruction is via `delete`, but custom deleters are supported. They type of the deleter has no effect on the type of the `std::shared_ptr`.
+
+- Avoid creating `std::shared_ptr`s from variables of raw pointer type.
+
+```c++
+// a data structure keeps track of Widgets that have been processed
+class Widget;
+std::vector<std::shared_ptr<Widget>> processedWidgets;
+
+// bad example
+class Widget {
+ public:
+  // ...
+  void process();
+  // ...
+};
+
+// this is wrong, though it will compile
+// std::shared_ptr will create a new control block for the pointed-to Widget (*this)
+void Widget::process() {
+  // ...
+  processedWidgets.emplace_back(this);
+}
+
+// good example
+class Widget : public std::enable_shared_from_this<Widget> {
+ public:
+  // factory function that perfect-forwards args to a private ctor
+  template <typename... Ts>
+  static std::shared_ptr<Widget> create(Ts&&... params);
+
+  void process();
+  // ...
+
+ private:
+  // ctors
+};
+
+// shared_from_this creates a std::shared_ptr to the current object, but it does it without
+// duplicating control blocks
+// the design relies on the current object having an associated control block, thus factory
+// function is applied
+void Widget::process() {
+  // ...
+  processedWidgets.emplace_back(shared_from_this());
+}
+```
 
 **Item 20: Use `std::weak_ptr` for `std::shared_ptr`-like pointers that can dangle.**
 
+- Use `std::weak_ptr` for `std::shared_ptr`-like pointers that can dangle.
+
+- Potential use cases for `std::weak_ptr` include caching, observer lists, and the prevention of `std::shared_ptr` cycles.
+
+```c++
+class Widget;
+class WidgetID;
+
+std::unique_ptr<const Widget> loadWidget(WidgetID id);
+
+// the Observer design pattern
+std::shared_ptr<const Widget> fastLoadWidget(WidgetID id) {
+  static std::unordered_map<WidgetID, std::weak_ptr<const Widget>> cache;
+  auto objPtr = cache[id].lock();
+  if (!objPtr) {
+    objPtr = loadWidget(id);
+    cache[id] = objPtr;
+  }
+  return objPtr;
+}
+```
+
 **Item 21: Prefer `std::make_unique` and `std::make_shared` to direct use of `new`.**
 
+- Compared to direct use of `new`, `make` functions eliminate source code duplication, improve exception safety, and, for `std::make_shared` and `std::allocate_shared`, generate code that's smaller and faster.
+
+- Situations where use of `make` functions is inappropriate include the need to specify custom deleters and a desire to pass braced initializers.
+
+- For `std::shared_ptr`s, additional situations where `make` functions may be ill-advised include (1) classes with custom memory management and (2) systems with memory concerns, very large objects, and `std::weak_ptr`s that outlive the corresponding `std::shared_ptr`s.
+
+```c++
+class Widget;
+
+// advantage 1 (the same applies to std::shared_ptr)
+auto upw1(std::make_unique<Widget>());
+std::unique_ptr<Widget> upw2(new Widget);
+
+// advantage 2 (the same applies to std::shared_ptr)
+void processWidget(std::unique_ptr<Widget> upw, int priority);
+int computePriority();
+processWidget(std::unique_ptr<Widget>(new Widget), computePriority());  // potential resource leak!
+processWidget(std::make_unique<Widget>(), computePriority());  // no potential resource leak
+
+// advantage 3 (for std::shared_ptr only)
+std::shared_ptr<Widget> spw(new Widget);  // two allocations for Widget and control block
+auto spw = std::make_shared<Widget>();    // one allocation
+
+// disadvantage 1 (the same applies to std::shared_ptr)
+auto widgetDeleter = [](Widget* pw) {};
+std::unique_ptr<Widget, decltype(widgetDeleter)> upw(new Widget, widgetDeleter);
+
+// disadvantage 2 (the same applies to std::shared_ptr)
+auto upv = std::make_unique<std::vector<int>>(10, 20);  // apply perfect-forward and use parentheses
+auto initList = {10, 20};
+auto upv = std::make_unique<std::vector<int>>(initList);
+```
+
 **Item 22: When using the Pimpl Idiom, define special member functions in the implementation file.**
+
+- The Pimpl Idiom decreases build times by reducing compilation dependencies between class clients and class implementations.
+
+- For std::unique_ptr pImpl pointers, declare special member functions in the class header, but implement them in the implementation file. Do this even if the default function implementations are acceptable.
+
+- The above advice applies to `std::unique_ptr`, but not to `std::shared_ptr`.
+
+  - For `std::shared_ptr`, the type of the deleter is not part of the type of the smart pointer. This necessitates larger runtime data structures and somewhat slower code, but pointed-to types need not be complete when compiler-generated special functions are employed.
+
+```c++
+// "widget.h"
+class Widget {
+ public:
+  Widget();
+  ~Widget();
+  Widget(Widget&& rhs) noexcept;
+  Widget& operator=(Widget& rhs) noexcept;
+  // ...
+
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> pImpl;
+};
+
+// "widget.cpp"
+#include <string>
+#include <vector>
+#include "gadget.h"
+#include "widget.h"
+
+struct Widget::Impl {
+  std::string name;
+  std::vector<double> data;
+  Gadget g1, g2, g3;
+};
+
+Widget::Widget() : pImpl(std::make_unique<Impl>()) {}
+
+// (if no definition)
+// prior to using delete, however, implementations typically have the default deleter employ C++11's
+// static_assert to ensure that the raw pointer doesn't point to an incomplete type; when the
+// compiler generates code for the destruction of the Widget w, then, it generally encounters a
+// statc_assert that fails, and that's usually what leads to the error message; this message is
+// associated with the point where w is destroyed, because Widget's destructor, like all
+// compiler-generated special member functions, is implicitly inline; the message itself often
+// refers to the line where w is created, because it's the source code explicitly creating the
+// object that leads to its later implicit destruction
+Widget::~Widget() = default;
+
+// (if no definition)
+// the problem here is that compilers must be able to generate code to destroy pImpl in the event
+// that an exception arises inside the move constructor (even if the constructor is noexcept!), and
+// destroying pImpl requires that Impl be complete
+Widget::Widget(Widget&& rhs) noexcept = default;
+
+// (if no definition)
+// the compiler-generated move assignment operator needs to destroy the object pointed to by pImpl
+// before reassigning it, but in the Widget header file, pImpl points to an incomplete type
+Widget& Widget::operator=(Widget&& rhs) noexcept = default;
+```
 
 ## CH5: Rvalue References, Move semantics, and Perfect Fowarding
 
