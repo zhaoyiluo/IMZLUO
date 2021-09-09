@@ -594,19 +594,276 @@ Widget& Widget::operator=(Widget&& rhs) noexcept = default;
 
 **Item 23: Understand `std::move` and `std::forward`.**
 
+- `std::move` performs an unconditional cast to an rvalue. In and of itself, it doesn't move anything.
+
+- `std::forward` casts its argument to an rvalue only if that argument is bound to an rvalue.
+
+- Neither `std::move` or `std::forward` do anything at runtime.
+
+- Move requests on `const` objects are treated as copy requests.
+
 **Item 24: Distinguish universal references from rvalue references.**
+
+- If a function template parameter has type `TT&` for a deduced type `T`, or if an object is declared using `auto&&`, the parameter or object is a universal reference.
+
+- If the form of the type declaration isn't precisely `type&&`, or if type deduction does not occur, `type&&` denotes an rvalue reference.
+
+- Universal references correspond to rvalue references if they're initialized with rvalues. They correspond to lvalue references if they're initialized with lvalues.
+
+```C++
+class Widget;
+
+void f(Widget&& param);  // rvalue reference
+
+Widget&& var1 = Widget();  // rvalue reference
+
+auto&& var2 = var1;  // universal reference
+
+template <typename T>
+void f(std::vector<T>&& param);  // rvalue reference
+
+template <typename T>
+void f(T&& param);  // universal reference
+
+template <class T, class Allocator = std::allocator<T>>
+class vector {
+ public:
+  // rvalue reference
+  // there's no type deduction in this case because push_back can't exist without a particular
+  // vector instantiation for it to be part of, and the type of that instantiation fully determines
+  // the declaration for push_back
+  void push_back(T&& x);
+
+  // the type parameter Args is independent of vector's type parameter T, so Args must be deduced
+  // each time emplace_back is called
+  template <class Args>
+  void emplace_back(Args&&... args);
+
+  // ...
+};
+```
 
 **Item 25: Use `std::move` on rvalue references, `std::forward` on universal references.**
 
+- Apply `std::move` to rvalue references and `std::forward` to universal references the last time each is used.
+
+- Do the same thing for rvalue references and universal references being returned from functions that return by value.
+
+- Never apply `std::move` or `std::forward` to local objects if they would otherwise be eligible for the return value optimization.
+
+  - The compilers may elide the copying (or moving) of a local object in a function that returns by value if (1) the type of the local object is the same as that returned by the function and (2) the local object is what's being returned.
+  - If the conditions for the RVO are met, but compilers choose not to perform copy elision, the object being returned must be treated as an rvalue.
+
+```c++
+// in a function that returns by value and returns an object bound to an rvalue reference or a
+// universal reference, apply std::move or std::forward when you return the reference
+Matrix operator+(Matrix&& lhs, const Matrix& rhs) {
+  lhs += rhs;
+  return std::std::move(lhs);  // move lhs into return value
+}
+
+template <typename T>
+Fraction reduceAndCopy(T&& frac) {
+  frac.reduce();
+  return std::forward<T>(frac);
+}
+```
+
 **Item 26: Avoid overloading on universal references.**
+
+- Overloading on universal references almost always leads to the universal reference overload being called more frequently than expceted.
+
+- Perfect-forwarding constructors are especially problematic, because they're typically better matches than copy constructors for non-`const` lvalues, and they can hijack derived class calls to base class copy and move constructors.
+
+```c++
+std::string nameFromIdx(int idx);
+
+class Person {
+ public:
+  template <typename T>
+  explicit Person(T&& n) : name(std::forward<T>(n)) {}
+
+  explicit Person(int idx) : name(nameFromIdx(idx)) {}
+
+  Person(const Person& rhs);  // compiler-generated
+
+  Person(Person&& rhs);  // compiler-generated
+
+ private:
+  std::string name;
+};
+
+// compiler is being initialized with a non-const lvalue (p), and that means that the templatized
+// constructor can be instantiated to take a non-const lvalue of type Person
+// explicit Person(Person& n) : name(std::forward<Person>(n)) {}
+// calling the copy constructor would require adding const to p to match the copy constructor's
+// parameter's type
+Person p("Nancy");
+auto cleanOfP(p);  // this won't compile!
+
+// situations where a template instantiation and a non-template function are equally good matches
+// for a function call, the normal function is preferred
+const Person p("Nancy");
+auto cleanOfP(p);  // call copy constructor
+
+// these two constructors will call base class forwarding constructor because the derived class
+// functions are using arguments of type SpecialPerson to pass to their base class
+class SpecialPerson : public Person {
+ public:
+  SpecialPerson(const SpecialPerson& rhs) : Person(rhs) {}
+  SpecialPerson(SpecialPerson&& rhs) : Person(std::move(rhs)) {}
+};
+```
 
 **Item 27: Familiarize yourself with alternatives to overloading on universal references.**
 
+- Alternatives to the combination of universal references and overloading include the use of distinct function names, passing parameters by lvalue-reference-to-`const`, passing parameters by value, and using tag dispatch.
+
+- Constraining templates via `std::enable_if` permits the use of universal references and overloading together, but it controls the conditions under which compilers may use the universal reference overloads.
+
+- Universal reference parameters often have efficiency advantages, but they typically have usability disadvantages.
+
+```c++
+// use tag dispatch
+template <typename T>
+void logAndAdd(T&& name) {
+  logAndAddImpl(std::forward<T>(name), std::is_integral<std::remove_reference_t<T>::type>());
+}
+
+template <typename T>
+void logAndAddImpl(T&& name, std::false_type) {
+  auto now = std::chrono::system_clock::now();
+  log(now, "logAndAdd");
+  names.emplace(std::forward<T>(name));
+}
+
+void logAndAddImpl(int idx, std::true_type) { logAndAdd(nameFromIdx(idx)); }
+
+// constrain templates that take universal references
+class Person {
+ public:
+  template <typename T,
+            typename = std::enable_if_t<!std::is_base_of<Person, std::decay_t<T>>::value &&
+                                        !std::is_integral<std::remove_reference_t<T>>::value>>
+  explicit Person(T&& n) : name(std::forward<T>(n)) {
+    // assert that a std::string can be created from a T object
+    static_assert(std::is_constructible<std::string, T>::value,
+                  "Parameter n can't be used to construct a std::string");
+
+    // the usual constructor work goes here
+  }
+
+  // remainder of Person class
+};
+```
+
 **Item 28: Understand reference collapsing.**
+
+- Reference collapsing occurs in four contexts: template instantiation, `auto` type generation, creation and use of `typedef`s and alias declarations, and `decltype`.
+
+- When compilers generate a reference to a reference in a reference collapsing context, the result becomes a single reference. If either the original references is an lvalue reference, the result is an lvalue reference. Otherwise it's an rvalue reference.
+
+- Universal references are rvalue references in contexts where type deduction distinguishes lvalues from rvalues and where reference collapsing occurs.
+
+```c++
+template <typename T>
+T&& forward(std::remove_reference_t<T>& param) {
+  return static_assert<T&&>(param);
+}
+```
 
 **Item 29: Assume that move operations are not present, not cheap, and not used.**
 
+- Assume that move operations are not present, not cheap, and not used.
+
+  - No move operations: The object to be moved from fails to offer move operations. The move request therefore becomes a copy request.
+  - Move not fast: The object to be moved from has move operations that are no faster than its copy operations.
+  - Move not usable: The context in which the moving would take place requires a move operation that emits no exceptions, but that operation isn't declared `noexcept`.
+  - Source object is lvalue: With very few exceptions only rvalues may be used as the source of a move operation.
+
+- In code with known types or support for move semantics, there is no need for assumptions.
+
 **Item 30: Familiarize yourself with perfect forwarding failure cases.**
+
+- Perfect forwarding fails when template type deduction fails or when it deduces the wrong type.
+
+- The kinds of arguments that lead to perfect forwarding failure are braced initializers, null pointers expressed as `0` or `NULL`, declaration-only integral `const static` data members, template and overloaded function names, and bitfields.
+
+```c++
+template <typename... Ts>
+void fwd(Ts&&... params) {
+  f(std::forward<Ts>(params)...);
+}
+
+// failure case 1: braced initializers
+// the problem is that passing a braced initializer to a function template parameter that's not
+// declared to be a std::initializer_list is decreed to be, as the Standard puts it, a "non-deduced
+// context"
+void f(const std::vector<int>& v);
+f({1, 2, 3});  // fine
+
+fwd({1, 2, 3});  // error!
+
+auto il = {1, 2, 3};
+fwd(il);  // fine
+
+// failure case 2: 0 or NULL as null pointers
+// the problem is that neither 0 or NULL can be perfect-forwarded as a null pointer
+
+// failure case 3: declaration-only integral static const and constexpr data members
+// the problem is that compilers perform const propagation on such members' values, thus eliminating
+// the need to set aside memory for them and references are simply pointers that are automatically
+// dereferenced
+class Widget {
+ public:
+  static constexpr std::size_t MinVals = 28;
+  // ...
+};
+
+std::vector<int> widgetData;
+widgetData.reserve(Widget::MinVals);  // error！ shouldn't link
+
+constexpr std::size_t Widget::MinVals;  // better to provide a definition
+
+// failure case 4: overloaded function names and template names
+// the problem is that a function template doesn't represent one function, it represents many
+// functions
+void f(int (*pf)(int));
+void f(int pf(int));
+
+int processVal(int value);
+int processVal(int value, int priority);
+
+f(processVal);   // fine
+fwd(processVal)  // error! which processVal?
+
+    template <typename T>
+    T workOnVal(T param) {}
+
+fwd(workOnVal);  // error! which workOnVal instantiation?
+
+using ProcessFuncType = int (*)(int);
+ProcessFuncType processValPtr = processVal;
+fwd(processValPtr);                          // fine
+fwd(static_cast<processValPtr>(workOnVal));  // also fine
+
+// failure case 5: bitfields
+// the problem is that a non-const reference shall not be bound to a bit-field and
+// reference-to-const don't bind to bitfields, they bind to "normal" objects (e.g., int) into which
+// the values of the bitfields have been copied
+struct IPv4Header {
+  std::uint32_t version : 4, IHL : 4, DSCP : 6, ECN : 2, totalLength : 16;
+};
+
+void f(std::size_t sz);
+
+IPv4Header h;
+f(h.totalLength);    // fine
+fwd(h.totalLength);  // error!
+
+auto length = static_cast<std::uint16_t>(h.totalLength);
+fwd(length);  // fine
+```
 
 ## CH6: Lambda Expressions
 
