@@ -869,11 +869,134 @@ fwd(length);  // fine
 
 **Item 31: Avoid default capture modes.**
 
+- Default by-reference capture can lead to dangling references.
+
+- Default by-value capture is susceptible to dangling pointers (especially `this`), and it misleadingly suggests that lambdas are self-contained.
+
+- Lambdas may also be dependent on objects with static storage duration that are defined at global or namespace scope or are declared `static` inside classes, functions, or files. These objects can be used inside lambdas, but they can't be captured.
+
+```c++
+using FilterContainer = std::vector<std::function<bool(int)>>;
+FilterContainer filters;
+
+// by-reference capture issue
+void addDivisorFilter() {
+  auto calc1 = computeSomeValue1();
+  auto calc2 = computeSomeValue2();
+
+  auto divisor = computeDivisor(calc1, calc2);
+
+  filters.emplace_back([&](int value) { return value % divisor == 0; });
+}
+
+// by-value capture issue
+class Widget {
+  void addFilter() const;
+
+ private:
+  int divisor;
+};
+
+// captures apply only to non-static local variables (including parameters) visible in the scope
+// where the lambda is created
+void Widget::addFilter() const {
+  filters.emplace_back([=](int value) { return value % divisor == 0; });
+}
+void Widget::addFilter() const {
+  auto currentObjectPtr = this;
+  filters.emplace_back(
+      [currentObjectPtr](int value) { return value % currentObjectPtr->divisor == 0; });
+}
+
+void doSomeWork() {
+  auto pw = std::make_unique<Widget>();
+  pw->addFilter();  // undefined behavior when funtion returned
+}
+
+// solution: use generalized lambda capture (C++14)
+void Widget::addFilter() const {
+  filters.emplace_back([divisor = divisor](int value) { return value % divisor == 0; });
+}
+```
+
 **Item 32: Use init capture to move objects into closures.**
+
+- Use C++14's init capture to move objects into closures.
+
+- In C++11, emulate init capture via hand-written classes or `std::bind`.
+
+  - It's not possible to move=construct an object into a C++1 closure, but it is possible to move-construct an object into a C++11 bind object.
+  - Emulating move-capture in C++11 consists of move-constructing an object into a bind object, then passing the move-constructed object to the lambda by reference.
+  - Because the lifetime of the bind object is the same as that of the closure, it's possible to treat objects in the bind object as if they were in the closure.
+
+```c++
+class Widget {
+ public:
+  // ...
+  bool isValidated() const;
+  bool isProcessed() const;
+  bool isArchived() const;
+
+ private:
+  // ...
+};
+
+// C++11
+auto func = std::bind(
+    [](const std::unique_ptr<Widget>& pw) { return pw->isValidated() && pw->isArchived(); },
+    std::make_unique<Widget>());
+
+// C++14
+auto func = [pw = std::make_unique<Widget>()] { return pw->isValidated() && pw->isArchived(); };
+```
 
 **Item 33: Use `decltype` on `auto&&` parameters to `std::forward` them.**
 
+- Use `decltype` on `auto&&` parameters to `std::forward` them.
+
+```c++
+// the only thing the lambda does with its parameter x is forward it to normalize
+auto f = [](auto x) { return normalize(x); };
+
+class SomeCompilerGeneratedClassName {
+ public:
+  template <typename T>
+  auto operator()(T x) const {
+    return normalize(x);
+  }
+};
+
+// more elegant style
+auto f = [](auto&& x) { return normalize(std::forward<decltype(x)>(x)); };
+
+// more more elegant style
+auto f = [](auto&&... xs) { return normalize(std::forward<decltype(xs)>(xs)...); };
+```
+
 **Item 34: Prefer lambdas to `std::bind`.**
+
+- Lambdas are more readable, more expressive, and may be more efficient than using `std::bind`.
+
+- In C++11 only, `std::bind` may be useful for implementing move capture or for binding objects with templatized function call operators.
+
+- `std::bind` always copies its arguments, but callers can achieve the effect of having an argument stored by reference by applying `std::ref` to it. All arguments passed to bind objects are passed by reference, because the function call operator for such objects uses perfect forwarding.
+
+```c++
+// polymorphic function objects
+class PolyWidget {
+ public:
+  template <typename T>
+  void operator()(const T& param) const;
+  // ...
+};
+
+PolyWidget pw;
+auto boundPW = std::bind(pw, std::placeholders::_1);
+
+boundPW(1930);
+boundPW(nullptr);
+boundPW("Rosebud");
+```
 
 ## CH7: The Concurrency API
 
