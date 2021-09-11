@@ -1002,15 +1002,194 @@ boundPW("Rosebud");
 
 **Item 35: Prefer task-based programming to thread-based.**
 
+- The `std::thread` API offers no direct way to get return values from asynchronously run functions, and if those functions throw, the program is terminated.
+
+- Thread-based programming calls for manual management of thread exhaustion, oversubscription, load balancing, and adaptation to new platforms.
+
+- Task-based programming via `std::async` with the default launch policy handles most of these issues for you.
+
+- There are some situations where using threads directly may be appropriate, though these are uncommon cases.
+
+  - You need access to the API of the underlying threading implementation.
+  - You need to and are able to optimize thread usage for your application.
+  - You need to implement threading technology beyond the C++ concurrency API.
+
 **Item 36: Specify `std::launch::async` if asynchronicity is essential.**
+
+- The default launch policy for `std::async` permits both asynchronous and synchronous task execution.
+
+- This flexibility leads to uncertainty when accessing `thread_local`s, implies that the task may never execute, and affects program logic for timeout-based `wait` calls.
+
+- Specify `std::launch::async` if asynchronous task execution is essential.
+
+```c++
+using namespace std::literals;
+
+void f() { std::this_thread::sleep_for(1s); }
+
+// two calls below are the same
+auto fut1 = std::async(f);
+auto fut2 = std::async(std::launch::async | std::launch::deferred, f);
+
+// if f is deferred, fut.wait_for will always return std::future_status::deferred, so the loop will
+// never terminate
+auto fut = std::async(f);
+while (fut.wait_for(100ms) != std::future_status::ready) {
+  // ...
+}
+
+// fix the issue
+auto fut = std::async(f);
+if (fut.wait_for(0s) == std::future_status::deferred) {
+  // ...
+} else {
+  while (fut.wait_for(100ms) != std::future_status::ready) {
+    // task is neither deferred nor ready,
+    // so do concurrent work until it's ready
+  }
+  // fut is ready
+}
+
+// C++11 style
+template <typename F, typename... Ts>
+inline std::future<typename std::result_of<F(Ts...)>::type> reallyAsync(F&& f, Ts&&... params) {
+  return std::async(std::launch::async, std::forward<F>(f), std::forward<Ts>(params)...);
+}
+
+// C++14 style
+template <typename F, typename... Ts>
+inline auto reallyAsync(F&& f, Ts&&... params) {
+  return std::async(std::launch::async, std::forward<F>(f), std::forward<Ts>(params)...);
+}
+```
 
 **Item 37: Make `std::threads` unjoinable on all paths.**
 
+- Make `std::thread`s unjoinable on all paths.
+
+- `join`-on-destruction can lead to difficult-to-debug performance anomalies.
+
+- detach-on-destruction can lead to difficult-to-debug undefined behavior.
+
+- Declare `std::thread` objects last in lists of data members.
+
+```c++
+constexpr auto tenMillion = 10000000;
+
+bool doWork(std::function<bool(int)> filter, int maxVal = tenMillion) {
+  std::vector<int> goodVals;
+  std::thread t([&filter, maxVal, &goodVals] {
+    for (auto i = 0; i <= maxVal; ++i) {
+      if (filter(i)) {
+        goodVals.push_back(i);
+      }
+    }
+  });
+
+  auto nh = t.native_handle();
+
+  if (conditionsAreSatisfied()) {
+    t.join();
+    performComputation(goodVals);
+    return true;
+  }
+
+  return false;
+}
+
+class ThreadRAII {
+ public:
+  enum class DtorAction { join, detach };
+
+  ThreadRAII(std::thread&& t, DtorAction a) : action(a), t(std::move(t)) {}
+
+  ~ThreadRAII() {
+    if (t.joinable()) {
+      if (action == DtorAction::join) {
+        t.join();
+      } else {
+        t.detach();
+      }
+    }
+  }
+
+  ThreadRAII(ThreadRAII&&) = default;
+  ThreadRAII& operator=(ThreadRAII&&) = default;
+
+  std::thread& get() { return t; }
+
+ private:
+  DtorAction action;
+  std::thread t;
+};
+
+// then use RAII class to rewrite doWork()
+```
+
 **Item 38: Be aware of varying thread handle destructor behavior.**
+
+- Future destructors normally just destroy the future's data members.
+
+- The final future referring to a shared state for a non-deferred task launched via `std::async` blocks until the task completes.
+
+```c++
+int calcValue();
+
+// a std::packaged_task object prepares a function (or other callable object) for asynchronous
+// execution by wrapping it such that its result is put into a shared object
+std::packaged_task<int()> pt(calcValue);
+
+auto fut = pt.get_future();  // get future for pt
+
+std::thread t(std::move(pt));  // run pt on t
+
+// client's decision
+// the decision among termination, joining, or detaching will be made in the code that manipulates
+// the std::thread on which the std::packaged_task is typically run
+```
 
 **Item 39: Consider `void` futures for one-shot event communication.**
 
+- For simple event communication, condvar-based designs require a superfluous mutex, impose constraints on the relative progress of detecting and reacting tasks, and require reacting tasks to verify that the event has taken place.
+
+- Designs employing a flag avoid those problems, but are based on polling, not blocking.
+
+- A condvar and flag can be used together, but the resulting communications mechanism is somewhat stilted.
+
+- Using `std::promise`s and futures dodges these issues, but the approach uses heap memory for shared states, and it's limited to one-shot communication.
+
+```c++
+std::promise<void> p;
+
+void react();
+
+void detect() {
+  auto sf = p.get_future().share();
+
+  std::vector<std::thread> vt;
+
+  for (int i = 0; i < threadsToRun; ++i) {
+    vt.emplace_back([sf] {
+      sf.wait();
+      react();
+    });
+  }
+
+  // ThreadRAII not used, so program is terminated if code here throws!
+
+  p.set_value();
+
+  for (auto& t : vt) {
+    t.join();
+  }
+}
+```
+
 **Item 40: Use `std::atomic` for concurrency, `volatile` for special memory.**
+
+- `std::atomic` is for data accessed from multiple threads without using mutexes. It's a tool for writing concurrent software.
+
+- `volatile` is for memory where reads and writes should not be optimized away. It's a tool for working with special memory.
 
 ## CH8: Tweaks
 
