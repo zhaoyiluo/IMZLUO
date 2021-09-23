@@ -1,5 +1,5 @@
 ---
-title: "[NOTE] Effectiv STL"
+title: "[NOTE] Effective STL"
 subtitle: "50 Specific Ways to Improve Your Use of the Standard Template Library"
 date: 2021-09-23T21:52:31+08:00
 lastmod: 2021-09-23T21:52:31+08:00
