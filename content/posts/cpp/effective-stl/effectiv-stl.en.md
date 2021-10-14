@@ -268,18 +268,18 @@ class Lock {
 
 ## CH2: `vector` and `string`
 
-Item 13: Prefer `vector` and `string` to dynamically allocated arrays.
+**Item 13: Prefer `vector` and `string` to dynamically allocated arrays.**
 
 - Any time you find yourself getting ready to dynamically allocate an array (i.e., plotting to write “`new T[...]`”), you should consider using a `vector` or a `string` instead.
 
-Item 14: Use `reserve` to avoid unnecessary reallocations.
+**Item 14: Use `reserve` to avoid unnecessary reallocations.**
 
 - There are two common ways to use `reserve` to avoid unneeded reallocations:
 
   - The first is applicable when you know exactly or approximately how many elements will ultimately end up in your container.
   - The second way is to reserve the maximum space you could ever need, then, once you've added all your data, trim off any excess capacity.
 
-Item 15: Be aware of variations in `string` implementations.
+**Item 15: Be aware of variations in `string` implementations.**
 
 - string values may or may not be reference counted. By default, many implementations do use reference counting, but they usually offer a way to turn it off, often via a preprocessor macro.
 
@@ -293,7 +293,7 @@ Item 15: Be aware of variations in `string` implementations.
 
 - Different implementations have different policies regarding minimum allocations for character buffers.
 
-Item 16: Know how to pass `vector` and `string` data to legacy APIs.
+**Item 16: Know how to pass `vector` and `string` data to legacy APIs.**
 
 - The return type of `begin` is an iterator, not a pointer, and you should never use `begin` when you need to get a pointer to the data in a `vector`.
 
@@ -319,7 +319,7 @@ std::size_t charsWritten = fillString(&vc[0], vc.size());
 std::string s(vc.begin(), vc.begin() + charsWritten);
 ```
 
-Item 17: Use "the `swap` trick" to trim excess capacity.
+**Item 17: Use "the `swap` trick" to trim excess capacity.**
 
 - There's no guarantee that this technique will truly eliminate excess capcaity.
 
@@ -333,7 +333,7 @@ std::vector<Contestant>(contestants).swap(contestants);  // trim
 std::vector<Contestant>().swap(contestants);             // clear and minimize its capacity
 ```
 
-Item 18: Avoid using `vector<bool>`.
+**Item 18: Avoid using `vector<bool>`.**
 
 - If `c` is container of objects of type `T` and `c` supports `operator[]`, the statement `T* p = &c[0];` must compile.
 
