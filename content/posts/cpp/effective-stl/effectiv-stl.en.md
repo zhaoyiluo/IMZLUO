@@ -270,15 +270,91 @@ class Lock {
 
 Item 13: Prefer `vector` and `string` to dynamically allocated arrays.
 
+- Any time you find yourself getting ready to dynamically allocate an array (i.e., plotting to write “`new T[...]`”), you should consider using a `vector` or a `string` instead.
+
 Item 14: Use `reserve` to avoid unnecessary reallocations.
+
+- There are two common ways to use `reserve` to avoid unneeded reallocations:
+
+  - The first is applicable when you know exactly or approximately how many elements will ultimately end up in your container.
+  - The second way is to reserve the maximum space you could ever need, then, once you've added all your data, trim off any excess capacity.
 
 Item 15: Be aware of variations in `string` implementations.
 
+- string values may or may not be reference counted. By default, many implementations do use reference counting, but they usually offer a way to turn it off, often via a preprocessor macro.
+
+- `string` objects may range in size from one to at least seven times the size of `char*` pointers.
+
+- Creation of a new string value may require zero, one, or two dynamic allocations.
+
+- `string` objects may or may not share information on the string's size and capacity.
+
+- `string`s may or may not support per-object allocators.
+
+- Different implementations have different policies regarding minimum allocations for character buffers.
+
 Item 16: Know how to pass `vector` and `string` data to legacy APIs.
+
+- The return type of `begin` is an iterator, not a pointer, and you should never use `begin` when you need to get a pointer to the data in a `vector`.
+
+- If you pass a `vector` to  C API that modifies its elements, that's typically okay, but the called routine must not attempt to change the number of elements in the vector.
+
+```c++
+// In both cases, the pointers being passed are pointers to const. The vector or string data are
+// being passed to an API that will read it, not modify it.
+void doSomething(const int* pInts, std::size_t numInts);
+void doSomething(const char* pString);
+
+// Initialize a vector with elements from a C API.
+constexpr int maxNumDoubles = 100;
+std::size_t fillArray(double* pArray, std::size_t arraySize);
+std::vector<double> vd(maxNumDoubles);
+vd.resize(fillArray(&vd[0], vd.size()));
+
+// Initialize a string with elements from a C API.
+constexpr int maxNumChars = 100;
+std::size_t fillString(char* pArray, std::size_t arraySize);
+std::vector<char> vc(maxNumChars);
+std::size_t charsWritten = fillString(&vc[0], vc.size());
+std::string s(vc.begin(), vc.begin() + charsWritten);
+```
 
 Item 17: Use "the `swap` trick" to trim excess capacity.
 
+- There's no guarantee that this technique will truly eliminate excess capcaity.
+
+- A variant of the `swap` trick can be used both to clear a container and to reduce its capacity to the minimum your implementation offers.
+
+```c++
+class Contestant;
+std::vector<Contestant> contestants;
+
+std::vector<Contestant>(contestants).swap(contestants);  // trim
+std::vector<Contestant>().swap(contestants);             // clear and minimize its capacity
+```
+
 Item 18: Avoid using `vector<bool>`.
+
+- If `c` is container of objects of type `T` and `c` supports `operator[]`, the statement `T* p = &c[0];` must compile.
+
+- `vector<bool>` is a pseudo-container that contains not actual `bool`s, but a packed representation of `bool`s that is designed to save space.
+
+- `vector<bool>` doesn't satisfy the requirements of an STL container; you're best off not using it; and `deque<bool>` and `bitset` are alternative data structures that will almost certainly satisfy your need for the capabilities promised by `vector<bool>`.
+
+```c++
+template <typename Allocator>
+std::vector<bool, Allocator> {
+ public:
+  class reference {};
+
+  reference operator[](std::size_type n);
+
+  // ...
+};
+
+std::vector<bool> v;
+bool *pb = &v[0];  // the type of &v[0] is std::vector<bool>::reference*, not bool*
+```
 
 ## CH3: Associative Containers
 
