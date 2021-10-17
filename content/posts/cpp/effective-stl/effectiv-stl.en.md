@@ -539,7 +539,7 @@ typename MapType::iterator efficientAddOrUpdate(MapType& m, const KeyArgType& k,
 
 ## CH4: Iterators
 
-Item 26: Prefer `iterator` to `const_iterator`, `reverse_iterator`, and `const_reverse_iterator`.
+**Item 26: Prefer `iterator` to `const_iterator`, `reverse_iterator`, and `const_reverse_iterator`.**
 
 - Some versions of `insert` and `erase` require `iterator`s. If you want to call those functions, you're going to have to produce `iterator`s. const and reverse iterators won't do.
 
@@ -547,7 +547,7 @@ Item 26: Prefer `iterator` to `const_iterator`, `reverse_iterator`, and `const_r
 
 - Conversion from a `reverse_iterator` to an `iterator` may require iterator adjustment after the conversion.
 
-Item 27: Use `distance` and `advance` to convert a container's `const_iterator`s to `iterator`s.
+**Item 27: Use `distance` and `advance` to convert a container's `const_iterator`s to `iterator`s.**
 
 - For `deque`, `list`, `set`, `multiset`, `map`, `multimap`, and the hashed container types, `iterator` and `const_iterator` are different classes, barely more closely related to one another than `string` and `complex<double>`.
 
@@ -566,7 +566,7 @@ std::advance(i, std::distance(i, ci));  // not possible for InputIterator to be 
 std::advance(i, std::distance<ConstIter>(i, ci));  // explicitly specify the type parameter to be used by distance
 ```
 
-Item 28: Understand how to use a `reverse_iterator`'s base `iterator`.
+**Item 28: Understand how to use a `reverse_iterator`'s base `iterator`.**
 
 - To emulate insertion at a position specified by a `reverse_iterator` `ri`, insert at the position `ri.base()` instead. For purpose of insertion, `ri` and `ri.base()` are equivalent, and `ri.base()` is truly the iterator corresponding to `ri`.
 
@@ -588,7 +588,7 @@ v.erase((++ri).base());  // for erasure
 v.erase(--ri.base());    // won't compile where string and vector iterators are pointers
 ```
 
-Item 29: Consider `istreambuf_iterator`s for character-by-character input.
+**Item 29: Consider `istreambuf_iterator`s for character-by-character input.**
 
 - The `operator>>` functions on which `istream_iterator`s depend perform formatted input, and that means they must undertake a fair amount of work on your behalf each time you call one.
 
