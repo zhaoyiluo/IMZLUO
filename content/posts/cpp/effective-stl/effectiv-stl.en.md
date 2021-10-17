@@ -358,19 +358,184 @@ bool *pb = &v[0];  // the type of &v[0] is std::vector<bool>::reference*, not bo
 
 ## CH3: Associative Containers
 
-Item 19: Understand the difference between equality and equivalence.
+**Item 19: Understand the difference between equality and equivalence.**
 
-Item 20: Specify comparison types for associative containers of pointers.
+- `find`'s definition of "the same" is equality, which is based on `operator==`. `set::insert`'s definition of "the same" is equivalence, which is usually based on `operator<`.
 
-Item 21: Always have comparison functions return `false` for equal values.
+- Equivalence is based on the relative ordering of object values in a sorted range and every standard associative container makes its sorting predicate available through its `key_comp` member function.
 
-Item 22: Avoid in-place key modification in `set` and `multiset`.
+- Once you leave the realm of sorted associative containers, the situation changes, and the issue of equality versus equivalence can be -- and has been -- revisited.
 
-Item 23: Consider replacing associative containers with sorted `vector`s.
+```c++
+bool ciStringCompare(const std::string& lhs,
+                     const std::string& rhs);  // case-insensitive string comparisons
 
-Item 24: Choose carefully between `map::operator[]` and `map::insert` when efficiency is important.
+struct CIStringCompare : public std::binary_function<std::string, std::string, bool> {
+  bool operator()(const std::string& lhs, const std::string& rhs) const {
+    return ciStringCompare(lhs, rhs);
+  }
+};
 
-Item 25: Familiarize yourself with the nonstandard hashed containers.
+std::set<std::string, CIStringCompare> ciss;
+ciss.insert("Persephone");  // a new element is added to the set
+ciss.insert("persephone");  // no new element is added to the set
+
+if (ciss.find("persephone") != ciss.end()) {
+  // this test will succeed
+}
+
+if (std::find(ciss.begin(), ciss.end(), "persephone") != ciss.end()) {
+  // this test will fail
+}
+```
+
+**Item 20: Specify comparison types for associative containers of pointers.**
+
+- Anytime you create a standard associative container of pointers, you must bear in mind that the container will be sorted by the values of the pointers.
+
+- You'll almost always want to create your own functor class to serve as a comparison type.
+
+```c++
+struct StringPtrLess : public std::binary_function<const std::string*, const std::string*, bool> {
+  bool operator()(const std::string* ps1, const std::string* ps2) const { return *ps1 < *ps2; }
+};
+
+typedef std::set<std::string*, StringPtrLess>
+    StringPtrSet;  // each of the set template's parameters is a type, not a function
+StringPtrLess ssp;
+
+// Solution 1
+for (StringPtrLess::const_iterator i = ssp.begin(); i != ssp.end(); ++i) {
+  std::cout << **i << std::endl;
+}
+
+// Solution 2
+void print(const std::string* ps) { std::cout << *ps << std::endl; }
+std::for_each(ssp.begin(), ssp.end(), print);
+
+// Solution 3
+struct Deference {
+  template <typename T>
+  const T& operator()(const T* ptr) const {
+    return *ptr;
+  }
+};
+std::transform(ssp.begin(), ssp.end(), std::ostream_iterator<std::string>(std::cout, "\n"),
+               Deference());
+```
+
+**Item 21: Always have comparison functions return `false` for equal values.**
+
+- Equal values never precede one another, so comparison functions should always return `false` for equal values.
+
+- Comparison functions used to sort associative containers must define a "strict weak ordering" over the objects they compare. The above is one of the requirements.
+
+```c++
+std::set<int, std::less_equal<int>> s;
+s.insert(10);  // 10A
+s.insert(10);  // 10B
+
+// Check expression: !(10A <= 10B) && !(10B <= 10A), which returns false.
+// It means 10A and 10B are not equivalent, hence not the same, and it thus goes about inserting 10B into the container alongside 10A.
+```
+
+**Item 22: Avoid in-place key modification in `set` and `multiset`.**
+
+- For objects of type `set<T>` or `multiset<T>`, the type of the elements stored in the container is simply `T`, not `const T`. If you do change an element in a `set` or `multiset`, you must be sure not to change a key part -- a part of the element that affects the sortedness of the container.
+
+- An implementation could have `operator*` for a `set<T>::iterator` return a `const T&`. That is, it could have the result of dereferencing a `set` iterator be a reference-to-`const` element of the set. Thus, code that attempts to modify elements in a `set` or `multiset` isn't portable.
+
+- With `set` and `multiset`, if you perform any in-place modifications of container elements, you are responsible for making sure that the container remains sorted.
+
+- A `map<K, V>` or a `multimap<K, V>` contains elements of type `pair<const K, V>`. That `const` means that the first component of the pair is defined to be `const`, and that means that attempts to modify it (even  after casting away its `const`ness) are undefined.
+
+```c++
+class Employee;
+struct IDNumberLess : public std::binary_function<Employee, Employee, bool> {
+  bool operator()(const Employee& lhs, const Employee& rhs) {
+    return lhs.idNumber() < rhs.idNumber();
+  }
+};
+
+typedef std::set<Employee, IDNumberLess> EmpIDSet;
+EmpIDSet se;
+
+Employee selectedID;
+EmpIDSet::iterator i = se.find(selectedID);
+
+if (i != se.end()) {
+  i->setTitle("Corporate Deity");  // some STL implementations will reject this line because *i is const
+  const_cast<Employee&>(*i).setTitle("Corporate Deity");  // treat the result of the cast as a reference to a (non-const) Employee
+}
+```
+
+**Item 23: Consider replacing associative containers with sorted `vector`s.**
+
+- Sorting data in a sorted `vector` is likely to consume less memory than sorting the same data in a standard associative container, and searching a sorted `vector` vis binary search is likely to be faster than searching a standard associative container when page faults are taken into account.
+
+- To emulate a `map` or `multimap` using a `vector`, you must omit the `const`, because when you sort the vector, the values of its elements will get moved around via assignment, and that means that both components of the par must be assignable.
+
+```c++
+typedef std::pair<std::string, int> Data;
+
+class DataCompare {
+ public:
+  bool operator()(const Data& lhs, const Data& rhs) const {
+      return keyLess(lhs.first, rhs.first);
+  }
+
+  bool operator()(const Data& lhs, const Data::first_type& k) const {
+    return keyLess(lhs.first, k);
+  }
+
+  bool operator()(const Data::first_type& k, const Data& rhs) const {
+    return keyLess(k, rhs.first);
+  }
+
+ private:
+  bool keyLess(const Data::first_type& k1, const Data::first_type& k2) const { return k1 < k2; }
+};
+```
+
+**Item 24: Choose carefully between `map::operator[]` and `map::insert` when efficiency is important.**
+
+- For the expression `m[k] = v;`, `map::operator[]` returns a reference to the value object associated with `k`. `v` is then assigned to the object to which the reference (the one returned from `operator[]`) refers.
+
+  - If `k` isn't yet in the map, it creates one from scratch by using the value type's default constructor. `operator[]` then returns a reference to this newly-created object.
+
+- `insert` is preferable to `operator[]` when adding an element to a map, and both efficiency and aesthetics dictate that `operator[]` is preferable when updating the value of an element that's already in the map.
+
+```c++
+// If we had used MapType::mapped_type as the type of efficientAddOrUpdate's third parameter, we'd have converted double to a Widget at the point of call, and we'd thus have paid for a Widget construction we didn't need.
+std::map<int, Widget> m;
+
+class Widget {
+ public:
+  // ...
+  Widget& operator=(double weight);
+  // ...
+};
+
+// KeyArgType and ValueArgType need not be the types sorted in the map. They need only be convertible to the types stored in the map.
+template <typename MapType, typename KeyArgType, typename ValueArgType>
+typename MapType::iterator efficientAddOrUpdate(MapType& m, const KeyArgType& k,
+                                                const ValueArgType& v) {
+  typename MapType::iterator lb = m.lower_bound(k);
+  if (lb != m.end() && !(m.key_comp()(k, lb->first))) {
+    lb->second = v;
+    return lb;
+  } else {
+    typedef typename MapType::value_type MVT;
+    return m.insert(MVT(k, v));
+  }
+}
+```
+
+**Item 25: Familiarize yourself with the nonstandard hashed containers.**
+
+- SGI employs a conventional open hashing scheme composed of an array (the buckets) of pointers to singly linked lists of elements.
+
+- Dinkumware also employs open hashing, but its design is based on a novel data structure consisting of an array of iterators (essentially the buckets) into a doubly linked list of elements, where adjacent pairs of iterators identify the extent of the elements in each bucket.
 
 ## CH4: Iterators
 
