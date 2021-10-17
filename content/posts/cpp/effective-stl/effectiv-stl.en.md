@@ -541,11 +541,67 @@ typename MapType::iterator efficientAddOrUpdate(MapType& m, const KeyArgType& k,
 
 Item 26: Prefer `iterator` to `const_iterator`, `reverse_iterator`, and `const_reverse_iterator`.
 
+- Some versions of `insert` and `erase` require `iterator`s. If you want to call those functions, you're going to have to produce `iterator`s. const and reverse iterators won't do.
+
+- It's not possible to implicitly convert a `const_iterator` to an `iterator`.
+
+- Conversion from a `reverse_iterator` to an `iterator` may require iterator adjustment after the conversion.
+
 Item 27: Use `distance` and `advance` to convert a container's `const_iterator`s to `iterator`s.
+
+- For `deque`, `list`, `set`, `multiset`, `map`, `multimap`, and the hashed container types, `iterator` and `const_iterator` are different classes, barely more closely related to one another than `string` and `complex<double>`.
+
+- Because it may take linear time to produce an `iterator` equivalent to a `const_iterator`, and because it can't be done at all useless the container for the `const_iterator` is available when the `const_iterator` is, you may wish to rethink designs that require producing `iterator`s from `const_iterator`s.
+
+```c++
+typedef std::deque<int> IntDeque;
+typedef IntDeque::iterator Iter;
+typedef IntDeque::const_iterator ConstIter;
+
+IntDeque d;
+ConstIter ci;
+
+Iter i(d.begin());
+std::advance(i, std::distance(i, ci));  // not possible for InputIterator to be two different types at the same time, so the call to distance fails
+std::advance(i, std::distance<ConstIter>(i, ci));  // explicitly specify the type parameter to be used by distance
+```
 
 Item 28: Understand how to use a `reverse_iterator`'s base `iterator`.
 
+- To emulate insertion at a position specified by a `reverse_iterator` `ri`, insert at the position `ri.base()` instead. For purpose of insertion, `ri` and `ri.base()` are equivalent, and `ri.base()` is truly the iterator corresponding to `ri`.
+
+- To emulate erasure at a position specified by a `reverse_iterator` `ri`, erase at the position preceding `ri.base()` instead. For purposes of erasure, `ri` and `ri.base()` are not equivalent, and `ri.base()` is not the `iterator` corresponding to `ri`.
+
+```c++
+std::vector<int> v;
+v.reserve(5);
+
+for (int i = 0; i < 5; ++i) {
+  v.push_back(i);
+}
+
+std::vector<int>::reverse_iterator ri = std::find(v.rbegin(), v.rend(), 3);
+std::vector<int>::iterator i(ri.base());
+
+v.insert(i, 99);         // for insertion
+v.erase((++ri).base());  // for erasure
+v.erase(--ri.base());    // won't compile where string and vector iterators are pointers
+```
+
 Item 29: Consider `istreambuf_iterator`s for character-by-character input.
+
+- The `operator>>` functions on which `istream_iterator`s depend perform formatted input, and that means they must undertake a fair amount of work on your behalf each time you call one.
+
+- For unformatted character-by character input, you should always consider `istreambuf_iterator`s. The same applies to `ostreambuf_iterator`s.
+
+```C++
+std::ifstream inputFile("interestingData.txt");
+inputFile.unsetf(std::ios::skipws);
+std::string fileData((std::istream_iterator<char>(inputFile)), std::istream_iterator<char>());
+
+std::ifstream inputFile("interestingData.txt");
+std::string fileData((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
+```
 
 ## CH5: Algorithms
 
