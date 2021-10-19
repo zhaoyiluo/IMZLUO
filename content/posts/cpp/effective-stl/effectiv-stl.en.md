@@ -605,21 +605,230 @@ std::string fileData((std::istreambuf_iterator<char>(inputFile)), std::istreambu
 
 ## CH5: Algorithms
 
-Item 30: Make sure destination ranges are big enough.
+**Item 30: Make sure destination ranges are big enough.**
 
-Item 31: Know your sorting options.
+- Whenever you use an algorithm requiring specification of a destination range, ensure that the the destination range is big enough already or is increased in size as the algorithm runs.
 
-Item 32: Follow `remove`-like algorithms by `erase` if you really want to remove something.
+```c++
+int transmogrify(int x);
 
-Item 33: Be wary of `remove`-like algorithms on containers of pointers.
+std::vector<int> values;
+std::vector<int> results;
 
-Item 34: Note which algorithms expect sorted ranges.
+// Like every algorithm that uses a destination range, `transform` writes its results by making assignments to the elements in the destination range.
+std::transform(values.begin(), values.end(), results.end(), transmogrify);
 
-Item 35: Implement simple case-insensitive string comparisons via `mismatch` or `lexicographical_compare`.
+// Internally, the iterator returned by back_inserter causes push_back to be called, so you may use back_inserter with any container offering push_back.
+std::transform(values.begin(), values.end(), std::back_inserter(results), transmogrify);
 
-Item 36: Understand the proper implementation of `copy_if`.
+// Using reserve without also using an insert iterator leads to undefined behavior inside algorithms as well as to corrupted containers.
+results.reserve(values.size() + values.size());
+std::transform(values.begin(), values.end(), std::back_inserter(results), transmogrify);
+```
 
-Item 37: Use `accumulate` or `for_each` to summarize ranges.
+**Item 31: Know your sorting options.**
+
+- If you need to perform a full sort on a `vector`, `string`, `deque`, or array, you can use `sort` or `stable_sort`.
+
+- If you have a `vector`, `string`, `deque`, or array and you need to put only the top n elements in order, `partial_sort` is available.
+
+- If you have a `vector`, `string`, `deque`, or array and you need to identify the elements at position n or you need to identify the top n elements without putting them in order, `nth_element` is at your beck and call.
+
+- If you need to separate the elements of a standard sequence container or an array into those that do and do not satisfy some criterion, you're probably looking for `partition` or `stable_partition`.
+
+- If your data is in a `list`, you can use `partition` and `stable_partition` directly, and you can use `list::sort` in place of `sort` and `stable_sort`. If you need the effects offered by `partial_sort` or `nth_element`, you'll have to approach the task indirectly, but there are a number of options.
+
+**Item 32: Follow `remove`-like algorithms by `erase` if you really want to remove something.**
+
+- Because the only way to eliminate an element from a container is to invoke a member function on that container, and because `remove` cannot know the container holding the elements on which it is operating, it is not possible for `remove` to eliminate elements from a container.
+
+- Internally, remove walks own the range, overwriting values that are to be "removed" with later values that are to be retained. The overwriting is accomplished by making assignments to the elements holding the values to be overwritten.
+
+- You should follow `remove` by `erase` if you really want to remove something.
+
+- There are two other "`remove`-like" algorithms: `remove_if` and `unique`.
+
+```c++
+std::vector<int> v;
+v.reserve(10);
+
+for (int i = 1; i <= 10; ++i) {
+  v.push_back(i);
+}
+
+v[3] = v[5] = v[9] = 99;
+
+std::remove(v.begin(), v.end(), 99);  // v.size() == 10
+v.erase(std::remove(v.begin(), v.end(), 99), v.end());  // erase-remove idiom
+```
+
+**Item 33: Be wary of `remove`-like algorithms on containers of pointers.**
+
+- To deal with containers of dynamically allocated pointers, be it by reference counting smart pointers, manual deletion and nullification of pointers prior to invoking a `remove`-like algorithm, or some technique of your own invention.
+
+```c++
+class Widget {
+ public:
+  // ...
+  bool isCertified() const;
+  // ...
+};
+
+std::vector<Widget*> v;
+v.push_back(new Widget());
+
+// The "removed" pointers have been overwritten by later "unremoved" pointers in the vector. Nothing
+// points to the uncertified Widgets, they can never be deleted, and their memory and other
+// resources are leaked.
+v.erase(std::remove_if(v.begin(), v.end(), std::not1(std::mem_fun(&Widget::isCertified))), v.end());
+
+// Solution 1:
+void delAndNullifyUncertified(Widget*& pWidget) {
+  if (!pWidget->isCertified()) {
+    delete pWidget;
+    pWidget = 0;
+  }
+}
+
+std::for_each(v.begin(), v.end(), delAndNullifyUncertified);
+v.erase(std::remove(v.begin(), v.end(), static_cast<Widget*>(0)), v.end());
+
+// Solution 2:
+template <typename T>
+class RCSP {};  // reference counting smart pointer
+
+typename RCSP<Widget> RCSPW;
+std::vector<RCSPW> v;
+v.push_back(RCSPW(new Widget));
+
+v.erase(std::remove_if(v.begin(), v.end()), std::not1(std::mem_fun(&Widget::isCertified))), v.end());
+```
+
+**Item 34: Note which algorithms expect sorted ranges.**
+
+- The search algorithms, `binary_search`, `lower_bound`, `upper_bound`, and `equal_range`, guarantee logarithmic-time look up only when they are passed random access iterators. If they're given less powerful iterators (such as bidirectional iterators), they still perform only a logarithmic number of comparisons, but they run in linear time. 
+
+- If you pass a sorted range to an algorithm that also takes a comparison function, be sure that the comparison function you pass behaves the same as the one you used to sort the range.
+
+```c++
+std::vector<int> v;
+std::sort(v.begin(), v.end(), std::greater<int>());
+
+bool a5Exists = std::binary_search(v.begin(), v.end(), 5);                       // error!
+bool a5Exists = std::binary_search(v.begin(), v.end(), 5, std::greater<int>());  // right
+```
+
+**Item 35: Implement simple case-insensitive string comparisons via `mismatch` or `lexicographical_compare`.**
+
+- Where `strcmp` works only with character arrays, however, `lexicographical_compare` works with ranges of values of any type and it may be passed an arbitrary predicate that determines whether two values satisfy a user-defined criterion.
+
+- `stricmp` / `strcmpi`, being optimized to do exactly one thing, typically run much faster on long strings than do the general-purpose algorithms `mismatch` and `lexicographical_compare`.
+
+```c++
+// Using std::mismatch
+int ciCharCompare(char c1, char c2) {
+  int lc1 = std::tolower(static_cast<unsigned char>(c1));
+  int lc2 = std::tolower(static_cast<unsigned char>(c2));
+
+  if (lc1 < lc2) {
+    return -1;
+  }
+
+  if (lc1 > lc2) {
+    return 1;
+  }
+
+  return 0;
+}
+
+int ciCharCompare(const std::string& s1, const std::string& s2) {
+  if (s1.size() < s2.size()) {
+    return ciStringCompareImpl(s1, s2);
+  } else {
+    return -ciStringCompareImpl(s2, s1);
+  }
+}
+
+int ciStringCompareImpl(const std::string& s1, const std::string& s2) {
+  typedef std::pair<std::string::const_iterator, std::string::const_iterator> PSCI;
+  PSCI p = std::mismatch(s1.begin(), s1.end(), s2.begin(), std::not2(std::ptr_fun(ciCharCompare)));
+
+  if (p.first == s1.end()) {
+    if (p.second == s2.end()) {
+      return 0;
+    } else {
+      return -1;
+    }
+  }
+
+  return ciCharCompare(*p.first, *p.second);
+}
+
+// Using std::lexicographical_compare
+bool ciCharLess(char c1, char c2) {
+  return std::tolower(static_cast<unsigned char>(c1)) <
+         std::tolower(static_cast<unsigned char>(c2));
+}
+
+bool ciStringCompare(const std::string& s1, const std::string& s2) {
+  return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), ciCharLess);
+}
+
+// Using stricmp/strcmpi
+int ciStringCompare(const std::string& s1, const std::string& s2) {
+  return stricmp(s1.c_str(), s2.c_str());
+}
+```
+
+**Item 36: Understand the proper implementation of `copy_if`.**
+
+- There's a good case to be made for putting `copy_if` into your local STL-related utility library and using it whenever it's appropriate.
+
+```c++
+template <typename InputIterator, typename OutputIterator, typename Predicate>
+OutputIterator copy_if(InputIterator begin, InputIterator end, OutputIterator destBegin,
+                       Predicate p) {
+  while (begin != end) {
+    if (p(*begin)) {
+      *destBegin++ = *begin;
+    }
+    ++begin;
+  }
+  return destBegin;
+}
+```
+
+**Item 37: Use `accumulate` or `for_each` to summarize ranges.**
+
+- This is a probing question why `for_each`'s function parameter is allowed to have side effects while `accumulate`'s is not.
+
+```c++
+struct Point {
+  Point(double initX, double initY) : x(initX), y(initY) {}
+  double x, y;
+};
+
+class PointAverage : std::unary_function<Point, void> {
+ public:
+  PointAverage() : xSum(0), ySum(0), numPoints(0) {}
+
+  void operator()(const Point& p) {
+    ++numPoints;
+    xSum += p.x;
+    ySum += p.y;
+  }
+
+  Point result() const { return Point(xSum / numPoints, ySum / numPoints); }
+
+ private:
+  std::size_t numPoints;
+  double xSum;
+  double ySum;
+};
+
+std::list<Point> lp;
+Point avg = std::for_each(lp.begin(), lp.end(), PointAverage()).result();
+```
 
 ## CH6: Functions, Functor Classes, Functions, etc.
 
