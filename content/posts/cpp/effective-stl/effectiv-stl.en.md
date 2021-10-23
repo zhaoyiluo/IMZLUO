@@ -832,15 +832,101 @@ Point avg = std::for_each(lp.begin(), lp.end(), PointAverage()).result();
 
 ## CH6: Functions, Functor Classes, Functions, etc.
 
-Item 38: Design functor classes for pass-by-value.
+**Item 38: Design functor classes for pass-by-value.**
 
-Item 39: Make predicates pure functions.
+- Function pointers are passed by value. STL function objects are modeled after function pointers, so the convention in the STL is that function objects, too, are passed by value (i.e., copied) when passed to and from functions.
 
-Item 40: Make functor classes adaptable.
+- That function pointers are passed by value implies two things.
+  - First, your function objects need to be small. Otherwise they will be too expensive to copy.
+  - Second, your function objects must be monomorphic (i.e., not polymorphic) -- they must not use virtual functions.
 
-Item 41: Understand the reasons for `ptr_fun`, `mem_fun`, and `mem_fun_ref`.
+```c++
+class Widget;
 
-Item 42: Make sure `less<T>` means `operator<`.
+template <typename T>
+class BPFCImpl {
+ private:
+  Widget w;
+  int x;
+
+  virtual ~BPFCImpl();
+
+  virtual void operator()(const T& val) const;
+
+  friend class BPFC<T>;
+};
+
+// Functor classes using the "Pimpl Idiom" must support copying in a reasonable fashion.
+template <typename T>
+class BPFC : public std::unary_function<T, void> {
+ private:
+  BPFCImpl<T>* pImpl;
+
+ public:
+  void operator()(const T& val) const { pImpl->operator(val); }
+};
+```
+
+**Item 39: Make predicates pure functions.**
+
+- Any place the STL  expects a predicate, it will accept either a real predicate or an object of a predicate class.
+
+- A predicate class is a functor class whose `operator()` function is a predicate, i.e., its `operator()` returns `true` or `false`.
+
+- Declaring `operator()` `const` in predicate classes is necessary for correct behavior, but it's not sufficient. It's also a pure function.
+
+**Item 40: Make functor classes adaptable.**
+
+- Each of the four standard function adapters (`not1`, `not2`, `bind1st`, and `bind2nd`) requires the existence of certain typedefs. Function objects that provide the necessary typedefs are said to be adaptable.
+
+- The conventional way to provide them is to inherit them from a base class, or, more precisely, a base struct (`std::unary_function` or `std::binary_function`).
+
+  - Non-pointer types passed to `unary_function` or `binary_function` have `const`s and references stripped off.
+  - Otherwise, pass to `unary_function` or `binary_function` whatever types `operator()` tales pr returns.
+
+```c++
+struct WidgetNameCompare : std::binary_function<Widget, Widget, bool> {
+  bool operator(const Widget& lhs, const Widget& rhs) const;
+};
+
+// The STL implicitly assumes that each functor class has only one operator() function, and it's the
+// parameter and return types for this function that should be passed to unary_function or
+// bninary_function.
+// If you try to combine WidgetNameCompare and PtrWidgetNameCompare, the functor would be adaptable
+// with respect to at most one of its calling forms.
+struct PtrWidgetNameCompare : std::binary_function<const Widget*, const Widget*, bool> {
+  bool operator(const Widget* lhs, const Widget* rhs) const;
+};
+```
+
+**Item 41: Understand the reasons for `ptr_fun`, `mem_fun`, and `mem_fun_ref`.**
+
+- Functions and function objects are always invoked using the syntactic form for non-member functions.
+
+- You must employ `mem_fun` and `mem_fun_ref` whenever you pass a member function to an STL component, because, in addition to adding typedefs (which may or may not be necessary), they adapt the calling syntaxes from the ones normally used with member functions to the one used everywhere in the STL.
+
+```c++
+template <typename InputIterator, typename Function>
+Function for_each(InputIterator begin, InputIterator end, Function f) {
+  while (begin != end) {
+    f(*begin++);
+  }
+}
+
+// mem_fun takes a pointer to a member function, pmf, and returns an object of type mem_fun_t<R, C>.
+// This is a functor class that holds the member function pointer and offers an operator() that
+// invokes the pointed-to member function on the object passed to operator().
+template <typename R, typename C>
+mem_fun_t<R, C> mem_fun(R (C::*pmf)());
+```
+
+**Item 42: Make sure `less<T>` means `operator<`.**
+
+- Actually, programmers are allowed to specialize templates in `std` for user-defined types. Almost always, there are alternatives that are superior to specializing `std` templates, but on rare occasions, it's a reasonable thing to do.
+
+- `operator<` is more than just the default way to implement `less`, it's what programmers expect `less` to do.
+
+- If you use `less` (explicitly or implicitly), make sure it means `operator<`. If you want to sort objects using some other criterion, create a special functor class that's not called `less`.
 
 ## CH7: Programming with the STL
 
