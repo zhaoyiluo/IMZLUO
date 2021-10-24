@@ -930,18 +930,117 @@ mem_fun_t<R, C> mem_fun(R (C::*pmf)());
 
 ## CH7: Programming with the STL
 
-Item 43: Prefer algorithm calls to hand-written loops.
+**Item 43: Prefer algorithm calls to hand-written loops.**
 
-Item 44: Prefer member functions to algorithms with the same names.
+- Efficiency: algorithms are often more efficient than the loops programmers produce.
 
-Item 45: Distinguish among `count`, `find`, `binary_search`, `lower_bound`, `upper_bound`, and `equal_range`.
+  - Library implementers can take advantage of their knowledge of container implementations to optimize traversals in a way that no library user ever could.
+  - All but the most trivial STL algorithms use computer science algorithms that are more sophisticated -- sometimes much more sophisticated -- than anything the average C++ programmer will be able to come up with.
+  - The elimination of redundant computations.
 
-Item 46: Consider function objects instead of functions as algorithm parameters.
+- Correctness: writing loops is more subject to errors than is calling algorithms.
 
-Item 47: Avoid producing write-only code.
+  - One of the trickier things about writing your own loops is making sure you use only iterators that (a) are valid and (b) point where you want them to.
 
-Item 48: Always `#include` the proper headers.
+- Maintainability: algorithm calls often yield code that is clearer and more straightforward than the corresponding explicit loops.
 
-Item 49: Learn to decipher STL-related compiler diagnostics.
+  - The names of STL algorithms convey a lot of semantic information, and that makes them clear than any random loop can hope to be.
 
-Item 50: Familiarize yourself with STL-related web sites.
+**Item 44: Prefer member functions to algorithms with the same names.**
+
+- Fist, the member functions are faster.
+
+- Second, they integrate better with the containers (especially the associative containers) than do the algorithms.
+
+  - You get logarithmic-time instead of linear-time performance.
+  - You determine whether two values are "the same" using equivalence, which is the natural definition for associative containers.
+  - When working with `map`s and `multimap`s, you automatically deal only with key values instead of with (key, value) pairs.
+  - Each of the algorithms that `list` specializes (`remove`, `remove_if`, `unique`, `sort`, `merge`, and `reverse`) copies objects, but `list`-specific versions copy nothing; they simply manipulate the pointers connecting list nodes.
+
+**Item 45: Distinguish among `count`, `find`, `binary_search`, `lower_bound`, `upper_bound`, and `equal_range`.**
+
+| What you want to know                                        | Algorithm to use     |                                | member function to use |                                 |
+| ------------------------------------------------------------ | -------------------- | ------------------------------ | ---------------------- | ------------------------------- |
+|                                                              | On an Unsorted Range | On  a Sorted Range             | With a `set` or `map`  | With a `multiset` or `multimap` |
+| Does the desired value exist?                                | `find`               | `binary_search`                | `count`                | `find`                          |
+| Does the desired value exist? If so, where is the first object with that value? | `find`               | `equal_range`                  | `find`                 | `find` or `lower_bound`         |
+| Where is the first object with a value not preceding the desired value? | `find_if`            | `lower_bound`                  | `lower_bound`          | `lower_bound`                   |
+| Where is the first object with a value succeeding the desired value? | `find_if`            | `upper_bound`                  | `upper_bound`          | `upper_bound`                   |
+| How many objects have the desired value?                     | `count`              | `equal_range`, then `distance` | `count`                | `count`                         |
+| Where are all the objects with the desired value?            | `find` (iteratively) | `equal_range`                  | `equal_range`          | `equal_range`                   |
+
+**Item 46: Consider function objects instead of functions as algorithm parameters.**
+
+- Function objects as parameters to algorithms offer more than greater efficiency. They're also more robust when it comes to getting your code to compile.
+
+```c++
+// Advantage 1: inline.
+std::vector<double> v;
+
+// An indirect function call through a pointer and most compilers won't try to inline calls to functions that are invoked through function pointers
+inline bool doubleGreater(double d1, double d2) { return d1 > d2; }
+std::sort(v.begin(), v.end(), doubleGreater);
+
+// Compilers are able to perform optimizations on this call-free code that are otherwise not usually attempted.
+std::sort(v.begin(), v.end(), std::greater<double>());
+
+// Advantage 2: not uncommon for STL platforms to reject perfectly valid code.
+std::set<std::string> s;
+
+// The cause of the problem is that this particular STL platform has a bug in its handling of const member functions.
+std::transform(s.begin(), s.end(), std::ostream_iterator<std::string::size_type>(std::cout, "\n"),
+               std::mem_fun_ref(&std::string::size));
+
+// It also facilities inlining the call to string::size.
+struct StringSize : public std::unary_function<std::string, std::string::size_type> {
+  std::string::size_type operator()(const std::string& s) const { return s.size(); }
+};
+std::transform(s.begin(), s.end(), std::ostream_iterator<std::string::size_type>(std::cout, "\n"),
+               StringSize());
+
+// Advantage 3: avoid subtle language pitfalls.
+template <typename FPType>
+FPType average(FPType val1, FPType val2) {
+  return (val1 + val2) / 2;
+}
+
+// In theory, there could be another function template named average that takes a single type parameter.
+template <typename InputIterator1, typename InputIterator2>
+void writeAverage(InputIterator1 begin1, InputIterator1 end1, InputIterator2 begin2,
+                  std::ofstream& s) {
+  std::transform(
+      begin1, end1, begin2,
+      std::ostream_iterator<typename std::iterator_traits<InputIterator1>::value_type>(s, "\n"),
+      average<typename std::iterator_traits<InputIterator1>::value_type>);
+};
+```
+
+**Item 47: Avoid producing write-only code.**
+
+- As you write the code, it seems straightforward, because it's a natural outgrowth of some basic ideas. Readers, however, have great difficulty in decomposing the final product back into the ideas on which it is based. That's the calling card of write-only code: it's easy to write, but it's hard to read and understand.
+
+**Item 48: Always `#include` the proper headers.**
+
+- Any time you use any of the components in a header, be sure to provide the corresponding `#include` directive, even if your development platform lets you get away without it.
+
+**Item 49: Learn to decipher STL-related compiler diagnostics.**
+
+- For `vector` and `string`, iterators are sometimes pointers, so compiler diagnostics may refer to pointer types if you've made a mistake with an `iterator`.
+
+- Messages mentioning `back_insert_iterator`, `front_insert_iterator`, or `insert_iterator` almost always mean you've made a mistake calling `back_inserter`, `front_inserter`, or `inserter`, respectively. If you didn't call these functions, some function you called (directly or indirectly) did.
+
+- If you get a message mentioning `binder1st` or `binder2nd`, you've probably made a mistake using `bind1st` or `bind2nd`.
+
+- Output iterators do their outputting or inserting work inside assignment operators, so if you've made a mistake with one of these iterator types, you're likely to get a message complaining about something inside an assignment operator you've never heard of.
+
+- If you get an error message originating from inside the implementation of an STL algorithm, there's probably something wrong with the types you're trying to use with that algorithm.
+
+- If you're using a common STL component like `vector`, `string`, or the `for_each` algorithm, and a compiler says it has no idea what you're talking about, you've probably failed to `#include` a required header file.
+
+**Item 50: Familiarize yourself with STL-related web sites.**
+
+- SGI's library implementation goes beyond the STL. Their goal is the development of a complete implementation of the standard C++ library, except for the parts inherited from C.
+
+- STLport offers a modified version of SGI's STL implementation that's been ported to more than 20 compilers. It offers a "debug mode" to help detect improper use of the STL -- uses that compile but lead to undefined runtime behavior.
+
+- Boost offers itself as a vetting mechanism to help separate the sheep from the goats when it comes to potential additions to the standard C++ library.
