@@ -959,7 +959,7 @@ mem_fun_t<R, C> mem_fun(R (C::*pmf)());
 
 **Item 45: Distinguish among `count`, `find`, `binary_search`, `lower_bound`, `upper_bound`, and `equal_range`.**
 
-| What you want to know                                        | Algorithm to use     |                                | member function to use |                                 |
+| What you want to know                                        | Algorithm to Use     |                                | Member Function to Use |                                 |
 | ------------------------------------------------------------ | -------------------- | ------------------------------ | ---------------------- | ------------------------------- |
 |                                                              | On an Unsorted Range | On  a Sorted Range             | With a `set` or `map`  | With a `multiset` or `multimap` |
 | Does the desired value exist?                                | `find`               | `binary_search`                | `count`                | `find`                          |
