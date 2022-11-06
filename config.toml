@@ -4,7 +4,7 @@ languageCode = "en-us"
 
 title = "IMZLUO"
 
-theme = "cactus"
+theme = "themes/cactus"
 
 copyright = "IMZLUO"
 
