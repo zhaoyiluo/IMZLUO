@@ -1,11 +1,7 @@
-baseURL = "https://imzluo.com"
-
+baseURL = "https://www.imzluo.com"
 languageCode = "en-us"
-
 title = "IMZLUO"
-
-theme = "themes/cactus"
-
+theme = "cactus"
 copyright = "IMZLUO"
 
 [[menu.main]]
