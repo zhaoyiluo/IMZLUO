@@ -3,3 +3,5 @@ public/
 
 # ignore local generated resource
 resources/
+
+.hugo_build.lock

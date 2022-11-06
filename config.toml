@@ -1,635 +1,84 @@
-baseURL = "https://www.imzluo.com/"
-# [en, zh-cn, fr, pl, ...] determines default content language
-defaultContentLanguage = "en"
-# theme
-theme = "DoIt"
-# themes directory
-themesDir = "themes"
+baseURL = "https://imzluo.com"
 
-# website title
-title = "Zhaoyi Luo"
+languageCode = "en-us"
 
-# whether to use robots.txt
-enableRobotsTXT = true
-# whether to use git commit log
-enableGitInfo = true
-# whether to use emoji code
-enableEmoji = true
+title = "IMZLUO"
 
-[languages]
-  [languages.en]
-    weight = 1
-    # language code
-    languageCode = "en"
-    # language name
-    languageName = "English"
-    # whether to include Chinese/Japanese/Korean
-    hasCJKLanguage = false
-    # default amount of posts in each pages
-    paginate = 12
-    # [UA-XXXXXXXX-X] google analytics code
-    googleAnalytics = ""
-    # copyright description used only for seo schema
-    copyright = "This work is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License."
-    # Menu config
-    [languages.en.menu]
-      [[languages.en.menu.main]]
-        identifier = "about"
-        pre = ""
-        post = ""
-        name = "About"
-        url = "/about/"
-        title = ""
-        weight = 1
-      [[languages.en.menu.main]]
-        identifier = "posts"
-        # you can add extra information before the name (HTML format is supported), such as icons
-        pre = ""
-        # you can add extra information after the name (HTML format is supported), such as icons
-        post = ""
-        name = "Posts"
-        url = "/posts/"
-        # title will be shown when you hover on this menu link.
-        title = ""
-        weight = 2
-      [[languages.en.menu.main]]
-        identifier = "categories"
-        pre = ""
-        post = ""
-        name = "Categories"
-        url = "/categories/"
-        title = ""
-        weight = 3
-      [[languages.en.menu.main]]
-        identifier = "github"
-        pre = "<i class='fab fa-github fa-fw'></i>"
-        post = ""
-        name = ""
-        url = "https://github.com/zhaoyiluo"
-        title = "GitHub"
-        weight = 8
-    [languages.en.params]
-      # site description
-      description = "About Zhaoyi Luo"
-      # site keywords
-      keywords = ["Theme", "Hugo"]
-      # App icon config
-      [languages.en.params.app]
-        # optional site title override for the app when added to an iOS home screen or Android launcher
-        title = "Zhaoyi Luo"
-        # whether to omit favicon resource links
-        noFavicon = false
-        # modern SVG favicon to use in place of older style .png and .ico files
-        svgFavicon = ""
-        # Safari mask icon color
-        iconColor = "#5bbad5"
-        # Windows v8-10 tile color
-        tileColor = "#da532c"
-      # Search config
-      [languages.en.params.search]
-        enable = true
-        # type of search engine ("lunr", "algolia", "fuse")
-        type = "algolia"
-        # max index length of the chunked content
-        contentLength = 4000
-        # placeholder of the search bar
-        placeholder = ""
-        # max number of results length
-        maxResultLength = 10
-        # snippet length of the result
-        snippetLength = 30
-        # HTML tag name of the highlight part in results
-        highlightTag = "em"
-        # whether to use the absolute URL based on the baseURL in search index
-        absoluteURL = false
-        [languages.en.params.search.algolia]
-          index = "en_index"
-          appID = "5YGRNRQK1G"
-          searchKey = "0ff6874805de24b84aa1d5ebccad56cd"
-        [languages.en.params.search.fuse]
-          # https://fusejs.io/api/options.html
-          isCaseSensitive = false
-          minMatchCharLength = 2
-          findAllMatches = false
-          location = 0
-          threshold = 0.3
-          distance = 100
-          ignoreLocation = false
-          useExtendedSearch = false
-          ignoreFieldNorm = false
-      # Home page config
-      [languages.en.params.home]
-        # amount of RSS pages
-        rss = 10
-        # Home page profile
-        [languages.en.params.home.profile]
-          enable = true
-          # Gravatar Email for preferred avatar in home page
-          gravatarEmail = ""
-          # URL of avatar shown in home page
-          avatarURL = "/images/zhaoyiluo.webp"
-          # title shown in home page (HTML format is supported)
-          title = "Zhaoyi Luo"
-          # subtitle shown in home page
-          subtitle = "Research Engineer at Tencent"
-          # whether to use typeit animation for subtitle
-          typeit = false
-          # whether to show social links
-          social = true
-          # disclaimer (HTML format is supported)
-          disclaimer = ""
-        # Home page posts
-        [languages.en.params.home.posts]
-          enable = true
-          # special amount of posts in each home posts page
-          paginate = 7
-      # Social config in home page
-      [languages.en.params.social]
-        GitHub = ""
-        Linkedin = "zhaoyiluo"
-        Twitter = ""
-        Instagram = "zyluo_luozy"
-        Facebook = ""
-        Telegram = "zhaoyiluo"
-        Medium = ""
-        Gitlab = ""
-        Youtubelegacy = ""
-        Youtubecustom = ""
-        Youtubechannel = ""
-        Tumblr = ""
-        Quora = ""
-        Keybase = ""
-        Pinterest = ""
-        Reddit = ""
-        Codepen = ""
-        FreeCodeCamp = ""
-        Bitbucket = ""
-        Stackoverflow = ""
-        Weibo = ""
-        Odnoklassniki = ""
-        VK = ""
-        Flickr = ""
-        Xing = ""
-        Snapchat = ""
-        Soundcloud = ""
-        Spotify = ""
-        Bandcamp = ""
-        Paypal = ""
-        Fivehundredpx = ""
-        Mix = ""
-        Goodreads = ""
-        Lastfm = ""
-        Foursquare = ""
-        Hackernews = ""
-        Kickstarter = ""
-        Patreon = ""
-        Steam = ""
-        Twitch = ""
-        Strava = ""
-        Skype = ""
-        Whatsapp = ""
-        Zhihu = ""
-        Douban = ""
-        Angellist = ""
-        Slidershare = ""
-        Jsfiddle = ""
-        Deviantart = ""
-        Behance = ""
-        Dribbble = ""
-        Wordpress = ""
-        Vine = ""
-        Googlescholar = ""
-        Researchgate = ""
-        Thingiverse = ""
-        Devto = ""
-        Gitea = ""
-        XMPP = ""
-        Matrix = ""
-        Bilibili = ""
-        ORCID = ""
-        Email = "zl766@cornell.edu"
-        RSS = false
+theme = "cactus"
 
-[params]
-  # DoIt theme version
-  version = "0.2.X"
-  # site default theme ("light", "dark", "black", "auto")
-  defaultTheme = "auto"
-  # public git repo url only then enableGitInfo is true
-  gitRepo = "https://github.com/zhaoyiluo/IMZLUO"
-  # which hash function used for SRI, when empty, no SRI is used ("sha256", "sha384", "sha512", "md5")
-  fingerprint = ""
-  # date format
-  dateFormat = "2006-01-02"
-  # website images for Open Graph and Twitter Cards
-  images = ["/logo.png"]
-  # enable PWA
-  enablePWA = true
-  # Header config
-  [params.header]
-    # desktop header mode ("fixed", "normal", "auto")
-    desktopMode = "fixed"
-    # mobile header mode ("fixed", "normal", "auto")
-    mobileMode = "auto"
-    # theme change mode ("switch", "select")
-    themeChangeMode = "switch"
-    # Header title config
-    [params.header.title]
-      # URL of the LOGO
-      logo = ""
-      # title name
-      name = "All The Best"
-      # you can add extra information before the name (HTML format is supported), such as icons
-      pre = "<i class='far fa-edit fa-fw'></i>"
-      # you can add extra information after the name (HTML format is supported), such as icons
-      post = ""
-      # whether to use typeit animation for title name
-      typeit = false
+copyright = "IMZLUO"
 
-  # Footer config
-  [params.footer]
-    enable = true
-    # Custom content (HTML format is supported)
-    custom = ''
-    # whether to show Hugo and theme info
-    hugo = true
-    # whether to show copyright info
-    copyright = true
-    # whether to show the author
-    author = true
-    # site creation time
-    since = 2021
-    # ICP info only in China (HTML format is supported)
-    icp = ""
-    # license info (HTML format is supported)
-    license= '<a rel="license external nofollow noopener noreffer" href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank">CC BY-NC 4.0</a>'
+[[menu.main]]
+name = "Home"
+url = "/"
+weight = 1
 
-  # Section (all posts) page config
-  [params.section]
-    # special amount of posts in each section page
-    paginate = 20
-    # date format (month and day)
-    dateFormat = "01-02"
-    # amount of RSS pages
-    rss = 10
+[[menu.main]]
+name = "Writings"
+url = "/posts"
+weight = 2
 
-  # List (category or tag) page config
-  [params.list]
-    # special amount of posts in each list page
-    paginate = 20
-    # date format (month and day)
-    dateFormat = "01-02"
-    # amount of RSS pages
-    rss = 10
+[[menu.main]]
+name = "About"
+url = "/about"
+weight = 3
 
-  # Page config
-  [params.page]
-    # whether to hide a page from home page
-    hiddenFromHomePage = true
-    # whether to hide a page from search results
-    hiddenFromSearch = false
-    # whether to enable twemoji
-    twemoji = false
-    # whether to enable lightgallery
-    lightgallery = false
-    # whether to enable the ruby extended syntax
-    ruby = true
-    # whether to enable the fraction extended syntax
-    fraction = true
-    # whether to enable the fontawesome extended syntax
-    fontawesome = true
-    # whether to show link to Raw Markdown content of the content
-    linkToMarkdown = true
-    # whether to show the full text content in RSS
-    rssFullText = false
-    # Page style ("normal", "wide")
-    pageStyle = "normal"
-    # Table of the contents config
-    [params.page.toc]
-      # whether to enable the table of the contents
-      enable = true
-      # whether to keep the static table of the contents in front of the post
-      keepStatic = false
-      # whether to make the table of the contents in the sidebar automatically collapsed
-      auto = false
-    # Code config
-    [params.page.code]
-      # whether to show the copy button of the code block
-      copy = true
-      # the maximum number of lines of displayed code by default
-      maxShownLines = 100
-    # KaTeX mathematical formulas config (KaTeX https://katex.org/)
-    [params.page.math]
-      enable = false
-      # default block delimiter is $$ ... $$ and \\[ ... \\]
-      blockLeftDelimiter = ""
-      blockRightDelimiter = ""
-      # default inline delimiter is $ ... $ and \\( ... \\)
-      inlineLeftDelimiter = ""
-      inlineRightDelimiter = ""
-      # KaTeX extension copy_tex
-      copyTex = true
-      # KaTeX extension mhchem
-      mhchem = true
-    # Mapbox GL JS config (Mapbox GL JS https://docs.mapbox.com/mapbox-gl-js)
-    [params.page.mapbox]
-      # access token of Mapbox GL JS
-      accessToken = "pk.eyJ1IjoiZGlsbG9uenEiLCJhIjoiY2s2czd2M2x3MDA0NjNmcGxmcjVrZmc2cyJ9.aSjv2BNuZUfARvxRYjSVZQ"
-      # style for the light theme
-      lightStyle = "mapbox://styles/mapbox/light-v10?optimize=true"
-      # style for the dark theme
-      darkStyle = "mapbox://styles/mapbox/dark-v10?optimize=true"
-      # whether to add NavigationControl (https://docs.mapbox.com/mapbox-gl-js/api/#navigationcontrol)
-      navigation = true
-      # whether to add GeolocateControl (https://docs.mapbox.com/mapbox-gl-js/api/#geolocatecontrol)
-      geolocate = true
-      # whether to add ScaleControl (https://docs.mapbox.com/mapbox-gl-js/api/#scalecontrol)
-      scale = true
-      # whether to add FullscreenControl (https://docs.mapbox.com/mapbox-gl-js/api/#fullscreencontrol)
-      fullscreen = true
-    # Social share links in post page
-    [params.page.share]
-      enable = true
-      Twitter = true
-      Facebook = true
-      Linkedin = false
-      Whatsapp = false
-      Pinterest = false
-      Tumblr = false
-      HackerNews = true
-      Reddit = false
-      VK = false
-      Buffer = false
-      Xing = false
-      Line = false
-      Instapaper = false
-      Pocket = false
-      Digg = false
-      Stumbleupon = false
-      Flipboard = false
-      Weibo = false
-      Renren = false
-      Myspace = false
-      Blogger = false
-      Baidu = false
-      Odnoklassniki = false
-      Evernote = false
-      Skype = false
-      Trello = false
-      Mix = false
-    # Comment config
-    [params.page.comment]
-      enable = false
-      # Disqus comment config (https://disqus.com/)
-      [params.page.comment.disqus]
-        enable = false
-        # Disqus shortname to use Disqus in posts
-        shortname = ""
-      # Gitalk comment config (https://github.com/gitalk/gitalk)
-      [params.page.comment.gitalk]
-        enable = false
-        owner = ""
-        repo = ""
-        clientId = ""
-        clientSecret = ""
-      # Valine comment config (https://github.com/xCss/Valine)
-      [params.page.comment.valine]
-        enable = false
-        appId = "aM7gLUeWp8it1Efrcp3rm8TB-MdYXbMMI"
-        appKey = "Xn1xlYj3Fm5gvsYG3WyQpaix"
-        placeholder = ""
-        avatar = "mp"
-        meta= ""
-        pageSize = 10
-        lang = "en"
-        visitor = true
-        recordIP = true
-        highlight = true
-        enableQQ = false
-        serverURLs = ""
-        # emoji data file name, default is "google.yml"
-        # ("apple.yml", "google.yml", "facebook.yml", "twitter.yml")
-        # located in "themes/DoIt/assets/data/emoji/" directory
-        # you can store your own data files in the same path under your project:
-        # "assets/data/emoji/"
-        emoji = ""
-      # Waline comment config (https://waline.js.org)
-      [params.page.comment.waline]
-        enable = false
-        serverURL = "https://doit-docs-comment.vercel.app/"
-        placeholder = "Just Go Go."
-        wordLimit = 0
-        avatar = "mp"
-        meta = ["nick", "mail", "link"]
-        pageSize = 10
-        lang = "en"
-        visitor = true
-        highlight = true
-        avatarCDN = ""
-        avatarForce = false
-        emojiCDN = ""
-        emojiMaps = ""
-        requiredFields = []
-        anonymous = false
-      # Facebook comment config (https://developers.facebook.com/docs/plugins/comments)
-      [params.page.comment.facebook]
-        enable = false
-        width = "100%"
-        numPosts = 10
-        appId = ""
-        languageCode = ""
-      # Telegram comments config (https://comments.app/)
-      [params.page.comment.telegram]
-        enable = false
-        siteID = ""
-        limit = 5
-        height = ""
-        color = ""
-        colorful = true
-        dislikes = false
-        outlined = false
-      # Commento comment config (https://commento.io/)
-      [params.page.comment.commento]
-        enable = false
-      # Utterances comment config (https://utteranc.es/)
-      [params.page.comment.utterances]
-        enable = false
-        # owner/repo
-        repo = ""
-        issueTerm = "pathname"
-        label = ""
-        lightTheme = "github-light"
-        darkTheme = "github-dark"
-      # Twikoo comment config (https://twikoo.js.org/)
-      [params.page.comment.twikoo]
-        enable = false
-        envId = "https://doit-docs-comment-twikoo.vercel.app/"
-        region = ""
-        path = ""
-        visitor = true
-    # Third-party library config
-    [params.page.library]
-      [params.page.library.css]
-        # someCSS = "some.css"
-        # located in "assets/"
-        # Or
-        # someCSS = "https://cdn.example.com/some.css"
-      [params.page.library.js]
-        # someJavascript = "some.js"
-        # located in "assets/"
-        # Or
-        # someJavascript = "https://cdn.example.com/some.js"
-    # Page SEO config
-    [params.page.seo]
-      # image URL
-      images = []
-      # Publisher info
-      [params.page.seo.publisher]
-        name = "xxxx"
-        logoUrl = "/images/zhaoyiluo.webp"
-
-  # TypeIt config
-  [params.typeit]
-    # typing speed between each step (measured in milliseconds)
-    speed = 100
-    # blinking speed of the cursor (measured in milliseconds)
-    cursorSpeed = 1000
-    # character used for the cursor (HTML format is supported)
-    cursorChar = "|"
-    # cursor duration after typing finishing (measured in milliseconds, "-1" means unlimited)
-    duration = -1
-
-  # Site verification code for Google/Bing/Yandex/Pinterest/Baidu
-  [params.verification]
-    google = "MQ8DNu27ayX6B_4ObiEDK09vGr1fdy7kOAnbd09hJk4"
-    bing = ""
-    yandex = ""
-    pinterest = ""
-    baidu = ""
-
-  # Site SEO config
-  [params.seo]
-    # image URL
-    image = "/images/Apple-Devices-Preview.png"
-    # thumbnail URL
-    thumbnailUrl = "/images/screenshot.png"
-
-  # Analytics config
-  [params.analytics]
-    enable = false
-    # Google Analytics
-    [params.analytics.google]
-      id = ""
-      # whether to anonymize IP
-      anonymizeIP = true
-    # Fathom Analytics
-    [params.analytics.fathom]
-      id = ""
-      # server url for your tracker if you're self hosting
-      server = ""
-
-  # Cookie consent config
-  [params.cookieconsent]
-    enable = false
-    # text strings used for Cookie consent banner
-    [params.cookieconsent.content]
-      message = ""
-      dismiss = ""
-      link = ""
-
-  # CDN config for third-party library files
-  [params.cdn]
-    # CDN data file name, disabled by default
-    # ("jsdelivr.yml")
-    # located in "themes/DoIt/assets/data/cdn/" directory
-    # you can store your own data files in the same path under your project:
-    # "assets/data/cdn/"
-    data = ""
-
-  # Compatibility config
-  [params.compatibility]
-    # whether to use Polyfill.io to be compatible with older browsers
-    polyfill = false
-    # whether to use object-fit-images to be compatible with older browsers
-    objectFit = false
-
-# Markup related configuration in Hugo
 [markup]
-  # Syntax Highlighting (https://gohugo.io/content-management/syntax-highlighting)
+  [markup.tableOfContents]
+    endLevel = 2
+    ordered = false
+    startLevel = 2
   [markup.highlight]
     codeFences = true
-    guessSyntax = true
+    guessSyntax = false
+    hl_Lines = ""
+    lineNoStart = 1
     lineNos = true
-    lineNumbersInTable = true
-    # false is a necessary configuration (https://github.com/dillonzq/LoveIt/issues/158)
-    noClasses = false
-  # Goldmark is from Hugo 0.60 the default library used for Markdown
+    lineNumbersInTable = false
+    noClasses = true
+    style = "dracula"
+    tabWidth = 4
   [markup.goldmark]
-    [markup.goldmark.extensions]
-      definitionList = true
-      footnote = true
-      linkify = true
-      strikethrough = true
-      table = true
-      taskList = true
-      typographer = true
     [markup.goldmark.renderer]
-      # whether to use HTML tags directly in the document
       unsafe = true
-  # Table Of Contents settings
-  [markup.tableOfContents]
-    startLevel = 2
-    endLevel = 6
 
-# Author config
-[author]
-  name = "Zhaoyi Luo"
-  email = "zl766@cornell.edu"
-  link = "https://github.com/zhaoyiluo"
+[params]
 
-# Sitemap config
-[sitemap]
-  changefreq = "weekly"
-  filename = "sitemap.xml"
-  priority = 0.5
+  colortheme = "white" # dark, light, white, or classic
+  rss = true # generate rss feed. default value is false
+  googleAnalyticsAsync = true # use asynchronous tracking. Synchronous tracking by default
+  showAllPostsArchive = false # default
 
-# Permalinks config (https://gohugo.io/content-management/urls/#permalinks)
-[Permalinks]
-  # posts = ":year/:month/:filename"
-  posts = ":filename"
+  # Home page settings
+  description = "I AM ZHAOYI LUO."
+  mainSection = "posts" # your main section
+  showAllPostsOnHomePage = false # default
+  postsOnHomePage = 5 # this option will be ignored if showAllPostsOnHomePage is set to true
+  tagsOverview = true # show tags overview by default.
+  showProjectsList = false # show projects list by default (if projects data file exists).
+  projectsUrl = "https://github.com/gohugoio" # title link for projects list
 
-# Privacy config (https://gohugo.io/about/hugo-and-gdpr/)
-[privacy]
-  # privacy of the Google Analytics (replaced by params.analytics.google)
-  [privacy.googleAnalytics]
-    # ...
-  [privacy.twitter]
-    enableDNT = true
-  [privacy.youtube]
-    privacyEnhanced = true
+  # https://gohugo.io/functions/format/#hugo-date-and-time-templating-reference
+  dateFormat = "2006-01-02" # default
 
-# Options to make output .md files
-[mediaTypes]
-  [mediaTypes."text/plain"]
-    suffixes = ["md"]
+  # Post page settings
+  show_updated = true # default
+  showReadTime = true # default
 
-# Options to make output .md files
-[outputFormats.MarkDown]
-  mediaType = "text/plain"
-  isPlainText = true
-  isHTML = false
+  [params.comments]
+    enabled = false # default
+    engine = "cactus_comments" # only disqus, utterances, and cactus_comments is supported
+    [params.comments.utterances]
+      repo = "<github_username>/<github_reponame>"
+      label = "hugo-site-name" # you can use however you want to label your name in your repo's issues
+      theme = "github-light"
+    [params.comments.cactuscomments]
+      siteName = "your_cactus_comments_sitename" # see https://cactus.chat/ on how to register your site name
+      #serverUrl = "" # Defaults to https://matrix.cactus.chat:8448 (Cactus Chat public server)
+      #serverName = "" # Defaults to cactus.chat
 
-# Options to make hugo output files
-[outputs]
-  home = ["HTML", "RSS", "JSON"]
-  page = ["HTML", "MarkDown"]
-  section = ["HTML", "RSS"]
-  taxonomy = ["HTML", "RSS"]
-  taxonomyTerm = ["HTML"]
-
-# Options for taxonomies
-[taxonomies]
-author = "authors"
-category = "categories"
-tag = "tags"
-series = "series"
+  # the value of name should be an valid font awesome icon name (brands type)
+  # https://fontawesome.com/icons?d=gallery&s=brands
+  [[params.social]]
+    name = "linkedin"
+    link = "https://www.linkedin.com/in/zhaoyiluo/"
