@@ -22,6 +22,10 @@ Zhaoyi :)
 
 ### Latest News
 
+[07/2023] Registered as Level III CFA exam candidate.
+
+[07/2023] Passed Level II of the CFA Program.
+
 [10/2022] Registered as Level II CFA exam candidate.
 
 [10/2022] Passed Level I of the CFA Program.
