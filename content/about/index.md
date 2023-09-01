@@ -22,19 +22,21 @@ Zhaoyi :)
 
 ### Latest News
 
-[07/2023] Registered as Level III CFA exam candidate.
+[09/2023] Promoted as Software Engineer II at Microsoft.
 
-[07/2023] Passed Level II of the CFA Program.
+[07/2023] Registered as CFA Level III candidate.
 
-[10/2022] Registered as Level II CFA exam candidate.
+[07/2023] Passed CFA Level II.
 
-[10/2022] Passed Level I of the CFA Program.
+[10/2022] Registered as CFA Level II candidate.
 
-[07/2022] Worked as a full-time software engineer at Microsoft.
+[10/2022] Passed CFA Level I.
 
-[10/2021] Registered as Level I CFA exam candidate.
+[07/2022] Worked as Full-time Software Engineer at Microsoft.
 
-[06/2021] Worked as a full-time research engineer at Tencent.
+[10/2021] Registered as CFA Level I candidate.
+
+[06/2021] Worked as Full-time Research Engineer at Tencent.
 
 [05/2021] Attended the graduation commencement. Big Congrats!
 
@@ -42,7 +44,9 @@ Zhaoyi :)
 
 ### Experience
 
-[07/2022-Current] Microsoft, Software Engineer, Shanghai, China
+[09/2023-current] Microsoft, Software Engineer II, Shanghai, China
+
+[07/2022-08/2023] Microsoft, Software Engineer, Shanghai, China
 
 [06/2021-07/2022] Tencent, Research Engineer, Shenzhen, Guangdong, China
 
