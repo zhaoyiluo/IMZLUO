@@ -22,6 +22,8 @@ Zhaoyi :)
 
 ### Latest News
 
+[04/2024] Passed CFA Level III.
+
 [09/2023] Promoted as Software Engineer II at Microsoft.
 
 [07/2023] Registered as CFA Level III candidate.
