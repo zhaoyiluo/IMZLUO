@@ -8,19 +8,21 @@ draft: false
 
 Hey,
 
-It is Zhaoyi Luo, a native Shanghainese, born in China.
+I'm Zhaoyi Luo, a native of Shanghai, China.
 
-I achieved my master degree from Cornell University in December 2020, majoring in Electrical and Computer Engineering, under the supervision of Professor [A. Kevin Tang](https://www.ece.cornell.edu/faculty-directory/kevin-tang).
+I earned my Master's degree in Electrical and Computer Engineering from Cornell University in December 2020, where I studied under the guidance of Professor [A. Kevin Tang](https://www.ece.cornell.edu/faculty-directory/kevin-tang).
 
-Currently, I am working as a software engineer at Microsoft in High Performance Computing (HPC), mainly on providing customers to run large-scale applications efficiently in the cloud. One of products our team is contributing is [Azure Batch](https://azure.microsoft.com/en-us/products/batch/).
+Currently, I work as a software engineer at Microsoft in the High Performance Computing (HPC) team. I focus on enabling customers to run large-scale applications efficiently in the cloud. One of the products our team contributes to is [Azure Batch](https://azure.microsoft.com/en-us/products/batch/).
 
-This site is my personal place and will be updated periodically. The major topics cover C++, Python, machine learning, and any troubles I have encountered during my daily work.
+This site is my personal space and will be updated periodically. I cover topics such as C++, Python, machine learning, and challenges I encounter in my daily work.
 
 Feel free to reach out if you have any questions.
 
 Zhaoyi :)
 
 ### Latest News
+
+[05/2024] Earned the CFA charter.
 
 [04/2024] Passed CFA Level III.
 
